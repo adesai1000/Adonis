@@ -50,6 +50,7 @@ export interface WeeklyStats {
     sessions: number
     totalDistance: number
     totalMinutes: number
+    totalSteps: number
   }
   bodyweight: {
     entries: number
@@ -140,6 +141,7 @@ export function buildWeeklyStats(
   const cardio = cardioLog.filter((e) => inRange(e.datetime, from, now))
   const totalDistance = cardio.reduce((d, e) => d + cardioDistance(e, dUnit), 0)
   const totalMinutes = cardio.reduce((m, e) => m + (e.durationSec || 0) / 60, 0)
+  const totalSteps = cardio.reduce((s, e) => s + (e.steps || 0), 0)
 
   // bodyweight
   const weights = weightLog
@@ -182,6 +184,7 @@ export function buildWeeklyStats(
       sessions: cardio.length,
       totalDistance: round1(totalDistance),
       totalMinutes: round1(totalMinutes),
+      totalSteps,
     },
     bodyweight: {
       entries: weights.length,

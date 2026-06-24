@@ -101,6 +101,7 @@ export const CARDIO_ACTIVITIES = [
   "Jump Rope",
   "Stair Climber",
   "HIIT",
+  "Steps",
   "Other",
 ] as const
 export type CardioActivity = (typeof CARDIO_ACTIVITIES)[number]
@@ -112,6 +113,7 @@ export interface CardioEntry {
   distance?: number // in distanceUnit
   distanceUnit?: DistanceUnit
   durationSec: number
+  steps?: number // for the "Steps" activity
   avgHeartRate?: number
   caloriesBurned?: number
   notes?: string

@@ -1,18 +1,15 @@
-import { subDays } from "date-fns"
+import { format, subDays } from "date-fns"
 import {
   cardioDistance,
-  computeTrend,
   convertWeight,
   dateKey,
   fmt,
-  inRange,
   sessionVolume,
-  type Trend,
+  signed,
 } from "@/lib/calc"
 import type {
   CardioEntry,
   CardKey,
-  DistanceUnit,
   FoodEntry,
   Settings,
   WeightEntry,
@@ -20,238 +17,132 @@ import type {
 } from "@/lib/types"
 
 export interface CardMetric {
-  /** Headline value formatted with its inline unit, e.g. "1,240.0 kg". */
+  /** Today's value formatted with its inline unit, or "-" when nothing today. */
   display: string
-  /** Trend across this period vs the previous equal-length window. */
-  trend: Trend
-  /** Tone for the TrendIndicator (good/bad/neutral). */
-  tone: "good" | "bad" | "neutral"
-  /** Text shown beside the trend arrow, e.g. "12.4%" or "−1.4 kg". */
+  /** Signed change vs yesterday, e.g. "+150.0 kcal" / "-0.4 lbs". */
   trendText: string
-  /** Whether there is any data in the current period. */
+  direction: "up" | "down" | "flat"
+  tone: "good" | "bad" | "neutral"
+  /** Whether there is any data for today. */
   hasData: boolean
+  /** Whether yesterday had data to compare against. */
+  hasPrev: boolean
 }
 
 export const CARD_TITLES: Record<CardKey, string> = {
-  volume: "Avg Weight Lifted",
-  reps: "Avg Reps / Set",
-  calories: "Avg Calories",
-  protein: "Avg Protein",
-  carbs: "Avg Carbs",
-  fat: "Avg Fat",
+  volume: "Weight Lifted",
+  reps: "Reps / Set",
+  calories: "Calories",
+  protein: "Protein",
+  carbs: "Carbs",
+  fat: "Fat",
   cardio: "Cardio",
   bodyweight: "Body Weight",
 }
 
-/** A signed percentage string, e.g. "+12.4%" / "−3.0%" / "0.0%". */
-function pctText(trend: Trend): string {
-  const v = trend.pct
-  if (!isFinite(v) || Math.abs(v) < 1e-9) return "0.0%"
-  const sign = v > 0 ? "+" : "−"
-  return `${sign}${fmt(Math.abs(v))}%`
+function higherIsBetterTone(direction: CardMetric["direction"]): CardMetric["tone"] {
+  if (direction === "flat") return "neutral"
+  return direction === "up" ? "good" : "bad"
 }
 
-/** Tone where a higher value is "good" (more volume, more reps, more cardio). */
-function higherIsBetterTone(trend: Trend): "good" | "bad" | "neutral" {
-  if (trend.direction === "flat") return "neutral"
-  return trend.direction === "up" ? "good" : "bad"
+interface DayValue {
+  value: number
+  has: boolean
 }
 
-interface TrendWindow {
-  curStart: Date
-  curEnd: Date
-  prevStart: Date
-  prevEnd: Date
+// ───────────────────────────── per-day aggregates ─────────────────────────────
+function foodDay(
+  foodLog: FoodEntry[],
+  day: string,
+  pick: (e: FoodEntry) => number
+): DayValue {
+  let value = 0
+  let has = false
+  for (const e of foodLog) {
+    if (dateKey(e.datetime) === day) {
+      value += pick(e) || 0
+      has = true
+    }
+  }
+  return { value, has }
 }
 
-function buildWindow(range: number): TrendWindow {
-  const now = new Date()
-  const curStart = subDays(now, range)
-  const prevEnd = curStart
-  const prevStart = subDays(now, range * 2)
-  return { curStart, curEnd: now, prevStart, prevEnd }
-}
-
-function inWindow(iso: string, start: Date, end: Date): boolean {
-  return inRange(iso, start, end)
-}
-
-// ───────────────────────────── volume ─────────────────────────────
-function volumeMetric(
+function volumeDay(
   workoutLog: WorkoutSession[],
-  settings: Settings,
-  w: TrendWindow
-): CardMetric {
-  const unit = settings.weightUnit
-  const avg = (start: Date, end: Date): number => {
-    const sessions = workoutLog.filter((s) => inWindow(s.datetime, start, end))
-    if (sessions.length === 0) return 0
-    const total = sessions.reduce((sum, s) => sum + sessionVolume(s, unit), 0)
-    return total / sessions.length
+  day: string,
+  unit: Settings["weightUnit"]
+): DayValue {
+  let value = 0
+  let has = false
+  for (const s of workoutLog) {
+    if (dateKey(s.datetime) === day) {
+      value += sessionVolume(s, unit)
+      has = true
+    }
   }
-  const cur = avg(w.curStart, w.curEnd)
-  const prev = avg(w.prevStart, w.prevEnd)
-  const trend = computeTrend(cur, prev)
-  const curCount = workoutLog.filter((s) =>
-    inWindow(s.datetime, w.curStart, w.curEnd)
-  ).length
-  return {
-    display: `${fmt(cur)} ${unit}`,
-    trend,
-    tone: higherIsBetterTone(trend),
-    trendText: pctText(trend),
-    hasData: curCount > 0,
-  }
+  return { value, has }
 }
 
-// ───────────────────────────── reps ─────────────────────────────
-function repsMetric(workoutLog: WorkoutSession[], w: TrendWindow): CardMetric {
-  const avg = (start: Date, end: Date): number => {
-    let reps = 0
-    let sets = 0
-    for (const s of workoutLog) {
-      if (!inWindow(s.datetime, start, end)) continue
-      for (const ex of s.exercises) {
-        sets += ex.sets.length
-        for (const st of ex.sets) reps += st.reps
+function repsDay(workoutLog: WorkoutSession[], day: string): DayValue {
+  let reps = 0
+  let sets = 0
+  for (const s of workoutLog) {
+    if (dateKey(s.datetime) !== day) continue
+    for (const ex of s.exercises) {
+      for (const st of ex.sets) {
+        sets++
+        reps += st.reps
       }
     }
-    return sets > 0 ? reps / sets : 0
   }
-  const cur = avg(w.curStart, w.curEnd)
-  const prev = avg(w.prevStart, w.prevEnd)
-  const trend = computeTrend(cur, prev)
-  return {
-    display: `${fmt(cur)} reps`,
-    trend,
-    tone: higherIsBetterTone(trend),
-    trendText: pctText(trend),
-    hasData: cur > 0,
-  }
+  return { value: sets > 0 ? reps / sets : 0, has: sets > 0 }
 }
 
-// ───────────────────────────── cardio ─────────────────────────────
-function cardioMetric(
+function cardioDay(
   cardioLog: CardioEntry[],
-  unit: DistanceUnit,
-  w: TrendWindow
-): CardMetric {
-  // Prefer average distance per session; fall back to duration when no
-  // session in the current period logged a distance.
-  const sessionsCur = cardioLog.filter((e) =>
-    inWindow(e.datetime, w.curStart, w.curEnd)
-  )
-  const useDistance = sessionsCur.some((e) => (e.distance ?? 0) > 0)
-
-  const avg = (start: Date, end: Date): number => {
-    const sessions = cardioLog.filter((e) => inWindow(e.datetime, start, end))
-    if (sessions.length === 0) return 0
-    const total = sessions.reduce(
-      (sum, e) =>
-        sum + (useDistance ? cardioDistance(e, unit) : e.durationSec / 60),
-      0
-    )
-    return total / sessions.length
+  day: string,
+  unit: Settings["distanceUnit"],
+  useDistance: boolean
+): DayValue {
+  let value = 0
+  let has = false
+  for (const e of cardioLog) {
+    if (dateKey(e.datetime) !== day) continue
+    has = true
+    value += useDistance ? cardioDistance(e, unit) : (e.durationSec || 0) / 60
   }
-  const cur = avg(w.curStart, w.curEnd)
-  const prev = avg(w.prevStart, w.prevEnd)
-  const trend = computeTrend(cur, prev)
-  const display = useDistance
-    ? `${fmt(cur)} ${unit === "km" ? "km" : "mi"}`
-    : `${fmt(cur)} min`
-  return {
-    display,
-    trend,
-    tone: higherIsBetterTone(trend),
-    trendText: pctText(trend),
-    hasData: sessionsCur.length > 0,
-  }
+  return { value, has }
 }
 
-// ───────────────────────────── bodyweight ─────────────────────────────
-function bodyweightMetric(
+function weightDay(
   weightLog: WeightEntry[],
-  settings: Settings,
-  w: TrendWindow
-): CardMetric {
-  const unit = settings.weightUnit
-  const inCur = weightLog
-    .filter((e) => inWindow(e.datetime, w.curStart, w.curEnd))
-    .slice()
+  day: string,
+  unit: Settings["weightUnit"]
+): DayValue {
+  const entries = weightLog
+    .filter((e) => dateKey(e.datetime) === day)
     .sort((a, b) => a.datetime.localeCompare(b.datetime))
-
-  const toUnit = (e: WeightEntry): number =>
-    convertWeight(e.weight, e.unit, unit)
-
-  if (inCur.length === 0) {
-    const trend = computeTrend(0, 0)
-    return {
-      display: `0.0 ${unit}`,
-      trend,
-      tone: "neutral",
-      trendText: `0.0 ${unit}`,
-      hasData: false,
-    }
-  }
-
-  const first = toUnit(inCur[0])
-  const latest = toUnit(inCur[inCur.length - 1])
-  const net = latest - first
-  const trend = computeTrend(latest, first)
-
-  // Tone vs goal: moving toward the goal weight is "good".
-  const goal = settings.goalWeight
-  let tone: "good" | "bad" | "neutral" = "neutral"
-  if (Math.abs(net) >= 1e-9 && goal > 0) {
-    const distBefore = Math.abs(goal - first)
-    const distAfter = Math.abs(goal - latest)
-    tone = distAfter < distBefore ? "good" : "bad"
-  }
-
-  const sign = net > 0 ? "+" : net < 0 ? "−" : ""
-  return {
-    display: `${fmt(latest)} ${unit}`,
-    trend,
-    tone,
-    trendText: `${sign}${fmt(Math.abs(net))} ${unit}`,
-    hasData: true,
-  }
+  if (entries.length === 0) return { value: 0, has: false }
+  const latest = entries[entries.length - 1]
+  return { value: convertWeight(latest.weight, latest.unit, unit), has: true }
 }
 
-// ───────────────────────────── nutrition (avg per logged day) ─────────────────────────────
-function macroMetric(
-  foodLog: FoodEntry[],
-  w: TrendWindow,
-  pick: (e: FoodEntry) => number,
-  unitLabel: string,
-  preferHigher: boolean
+function build(
+  today: DayValue,
+  prev: DayValue,
+  unit: string,
+  tone: (d: CardMetric["direction"]) => CardMetric["tone"]
 ): CardMetric {
-  const avgPerDay = (start: Date, end: Date): number => {
-    const days = new Map<string, number>()
-    for (const e of foodLog) {
-      if (!inWindow(e.datetime, start, end)) continue
-      const k = dateKey(e.datetime)
-      days.set(k, (days.get(k) ?? 0) + (pick(e) || 0))
-    }
-    if (days.size === 0) return 0
-    let total = 0
-    for (const v of days.values()) total += v
-    return total / days.size
-  }
-  const cur = avgPerDay(w.curStart, w.curEnd)
-  const prev = avgPerDay(w.prevStart, w.prevEnd)
-  const trend = computeTrend(cur, prev)
-
-  const curDays = new Set<string>()
-  for (const e of foodLog) {
-    if (inWindow(e.datetime, w.curStart, w.curEnd)) curDays.add(dateKey(e.datetime))
-  }
+  const delta = today.value - prev.value
+  const direction: CardMetric["direction"] =
+    Math.abs(delta) < 1e-9 ? "flat" : delta > 0 ? "up" : "down"
   return {
-    display: `${fmt(cur)} ${unitLabel}`,
-    trend,
-    tone: preferHigher ? higherIsBetterTone(trend) : "neutral",
-    trendText: pctText(trend),
-    hasData: curDays.size > 0,
+    display: today.has ? `${fmt(today.value)} ${unit}` : "-",
+    trendText: `${signed(delta)} ${unit}`,
+    direction,
+    tone: tone(direction),
+    hasData: today.has,
+    hasPrev: prev.has,
   }
 }
 
@@ -265,23 +156,88 @@ export function computeCardMetric(
     settings: Settings
   }
 ): CardMetric {
-  const w = buildWindow(data.settings.trendRange)
+  const { settings } = data
+  const today = format(new Date(), "yyyy-MM-dd")
+  const yesterday = format(subDays(new Date(), 1), "yyyy-MM-dd")
+  const wUnit = settings.weightUnit
+
   switch (key) {
     case "volume":
-      return volumeMetric(data.workoutLog, data.settings, w)
+      return build(
+        volumeDay(data.workoutLog, today, wUnit),
+        volumeDay(data.workoutLog, yesterday, wUnit),
+        wUnit,
+        higherIsBetterTone
+      )
     case "reps":
-      return repsMetric(data.workoutLog, w)
+      return build(
+        repsDay(data.workoutLog, today),
+        repsDay(data.workoutLog, yesterday),
+        "reps",
+        higherIsBetterTone
+      )
     case "calories":
-      return macroMetric(data.foodLog, w, (e) => e.calories, "kcal", false)
+      return build(
+        foodDay(data.foodLog, today, (e) => e.calories),
+        foodDay(data.foodLog, yesterday, (e) => e.calories),
+        "kcal",
+        () => "neutral"
+      )
     case "protein":
-      return macroMetric(data.foodLog, w, (e) => e.protein, "g", true)
+      return build(
+        foodDay(data.foodLog, today, (e) => e.protein),
+        foodDay(data.foodLog, yesterday, (e) => e.protein),
+        "g",
+        higherIsBetterTone
+      )
     case "carbs":
-      return macroMetric(data.foodLog, w, (e) => e.carbs, "g", false)
+      return build(
+        foodDay(data.foodLog, today, (e) => e.carbs),
+        foodDay(data.foodLog, yesterday, (e) => e.carbs),
+        "g",
+        () => "neutral"
+      )
     case "fat":
-      return macroMetric(data.foodLog, w, (e) => e.fat, "g", false)
-    case "cardio":
-      return cardioMetric(data.cardioLog, data.settings.distanceUnit, w)
-    case "bodyweight":
-      return bodyweightMetric(data.weightLog, data.settings, w)
+      return build(
+        foodDay(data.foodLog, today, (e) => e.fat),
+        foodDay(data.foodLog, yesterday, (e) => e.fat),
+        "g",
+        () => "neutral"
+      )
+    case "cardio": {
+      const dUnit = settings.distanceUnit
+      const todayHasDist = data.cardioLog.some(
+        (e) => dateKey(e.datetime) === today && (e.distance ?? 0) > 0
+      )
+      const unit = todayHasDist ? (dUnit === "km" ? "km" : "mi") : "min"
+      return build(
+        cardioDay(data.cardioLog, today, dUnit, todayHasDist),
+        cardioDay(data.cardioLog, yesterday, dUnit, todayHasDist),
+        unit,
+        higherIsBetterTone
+      )
+    }
+    case "bodyweight": {
+      const todayV = weightDay(data.weightLog, today, wUnit)
+      const prevV = weightDay(data.weightLog, yesterday, wUnit)
+      const delta = todayV.value - prevV.value
+      const goal = settings.goalWeight
+      let tone: CardMetric["tone"] = "neutral"
+      if (Math.abs(delta) >= 1e-9 && goal > 0 && prevV.has) {
+        const before = Math.abs(goal - prevV.value)
+        const after = Math.abs(goal - todayV.value)
+        tone = after < before ? "good" : "bad"
+      }
+      const direction: CardMetric["direction"] =
+        Math.abs(delta) < 1e-9 ? "flat" : delta > 0 ? "up" : "down"
+      return {
+        display: todayV.has ? `${fmt(todayV.value)} ${wUnit}` : "-",
+        trendText: `${signed(delta)} ${wUnit}`,
+        direction,
+        tone,
+        hasData: todayV.has,
+        hasPrev: prevV.has,
+      }
+    }
   }
 }

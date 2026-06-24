@@ -367,28 +367,34 @@ function CardioSection({
                     </span>
                   </div>
                   <p className="mt-0.5 text-xs text-muted-foreground tabular-nums">
-                    {e.distance != null && e.distance > 0 && (
+                    {e.steps != null && e.steps > 0 ? (
+                      <>{fmtNum(e.steps)} steps</>
+                    ) : (
                       <>
-                        {fmt(dist)} {unitLabel} ·{" "}
-                      </>
-                    )}
-                    {formatDuration(e.durationSec)}
-                    {e.distance != null && e.distance > 0 && (
-                      <>
-                        {" "}
-                        · {formatPace(dist, e.durationSec, distanceUnit)}
-                      </>
-                    )}
-                    {e.avgHeartRate != null && e.avgHeartRate > 0 && (
-                      <>
-                        {" "}
-                        · {fmtNum(e.avgHeartRate)} bpm
-                      </>
-                    )}
-                    {e.caloriesBurned != null && e.caloriesBurned > 0 && (
-                      <>
-                        {" "}
-                        · {fmtNum(e.caloriesBurned)} kcal
+                        {e.distance != null && e.distance > 0 && (
+                          <>
+                            {fmt(dist)} {unitLabel} ·{" "}
+                          </>
+                        )}
+                        {formatDuration(e.durationSec)}
+                        {e.distance != null && e.distance > 0 && (
+                          <>
+                            {" "}
+                            · {formatPace(dist, e.durationSec, distanceUnit)}
+                          </>
+                        )}
+                        {e.avgHeartRate != null && e.avgHeartRate > 0 && (
+                          <>
+                            {" "}
+                            · {fmtNum(e.avgHeartRate)} bpm
+                          </>
+                        )}
+                        {e.caloriesBurned != null && e.caloriesBurned > 0 && (
+                          <>
+                            {" "}
+                            · {fmtNum(e.caloriesBurned)} kcal
+                          </>
+                        )}
                       </>
                     )}
                   </p>
@@ -548,7 +554,7 @@ export default function Page() {
 
       {/* Date navigation */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1">
+        <div className="flex min-w-0 flex-1 items-center gap-1">
           <Button
             variant="outline"
             size="icon"
@@ -562,7 +568,7 @@ export default function Page() {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className="h-11 min-w-[12rem] flex-1 justify-start gap-2 font-normal"
+                className="h-11 min-w-0 flex-1 justify-start gap-2 font-normal"
               >
                 <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">
@@ -591,6 +597,17 @@ export default function Page() {
           >
             <ChevronRight className="size-4" />
           </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            className="size-11 shrink-0"
+            onClick={exportDay}
+            disabled={totalEntries === 0}
+            aria-label="Export this day"
+            title="Export this day"
+          >
+            <Download className="size-4" />
+          </Button>
         </div>
         {!isToday && (
           <Button
@@ -601,15 +618,6 @@ export default function Page() {
             Today
           </Button>
         )}
-        <Button
-          variant="outline"
-          className="ml-auto h-11 gap-2"
-          onClick={exportDay}
-          disabled={totalEntries === 0}
-        >
-          <Download className="size-4" />
-          Export This Day
-        </Button>
       </div>
 
       {totalEntries === 0 ? (

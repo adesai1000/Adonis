@@ -1,4 +1,4 @@
-import { Timer } from "lucide-react"
+import { Footprints, Timer } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -25,6 +25,7 @@ interface CardioDraft {
   h: string
   m: string
   s: string
+  steps: string
   avgHeartRate: string
   caloriesBurned: string
   notes: string
@@ -37,6 +38,7 @@ const initialDraft = (): CardioDraft => ({
   h: "",
   m: "",
   s: "",
+  steps: "",
   avgHeartRate: "",
   caloriesBurned: "",
   notes: "",
@@ -54,8 +56,10 @@ export function CardioTab() {
     initialDraft()
   )
 
+  const isSteps = draft.activity === "Steps"
   const durationSec = hmsToSeconds(toNum(draft.h), toNum(draft.m), toNum(draft.s))
   const distance = toNum(draft.distance)
+  const steps = toNum(draft.steps)
   const pace = formatPace(
     distance > 0 ? distance : undefined,
     durationSec,
@@ -64,27 +68,32 @@ export function CardioTab() {
   const distanceLabel = settings.distanceUnit === "km" ? "km" : "mi"
 
   const durationInvalid = durationSec <= 0
+  const stepsInvalid = steps <= 0
+  const invalid = isSteps ? stepsInvalid : durationInvalid
 
   function handleSubmit() {
-    if (durationInvalid) {
-      toast.error("Enter a duration")
+    if (invalid) {
+      toast.error(isSteps ? "Enter your step count" : "Enter a duration")
       return
     }
     addCardio({
       datetime: draft.datetime,
       activity: draft.activity,
-      distance: distance > 0 ? distance : undefined,
-      distanceUnit: distance > 0 ? settings.distanceUnit : undefined,
-      durationSec,
+      distance: !isSteps && distance > 0 ? distance : undefined,
+      distanceUnit: !isSteps && distance > 0 ? settings.distanceUnit : undefined,
+      durationSec: isSteps ? 0 : durationSec,
+      steps: isSteps && steps > 0 ? Math.round(steps) : undefined,
       avgHeartRate:
-        toNum(draft.avgHeartRate) > 0 ? toNum(draft.avgHeartRate) : undefined,
+        !isSteps && toNum(draft.avgHeartRate) > 0
+          ? toNum(draft.avgHeartRate)
+          : undefined,
       caloriesBurned:
-        toNum(draft.caloriesBurned) > 0
+        !isSteps && toNum(draft.caloriesBurned) > 0
           ? toNum(draft.caloriesBurned)
           : undefined,
       notes: draft.notes.trim() || undefined,
     })
-    toast.success("Cardio logged")
+    toast.success(isSteps ? "Steps logged" : "Cardio logged")
     setDraft(initialDraft())
   }
 
@@ -116,80 +125,103 @@ export function CardioTab() {
         </Select>
       </div>
 
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">
-          Distance ({distanceLabel})
-        </Label>
-        <Input
-          type="number"
-          inputMode="decimal"
-          min={0}
-          step="0.01"
-          placeholder="0"
-          className="h-11"
-          value={draft.distance}
-          onChange={(e) => setDraft((d) => ({ ...d, distance: e.target.value }))}
-        />
-      </div>
-
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Duration</Label>
-        <div className="grid grid-cols-3 gap-2">
-          <HMSInput
-            label="hrs"
-            value={draft.h}
-            onChange={(h) => setDraft((d) => ({ ...d, h }))}
-          />
-          <HMSInput
-            label="min"
-            value={draft.m}
-            onChange={(m) => setDraft((d) => ({ ...d, m }))}
-            max={59}
-          />
-          <HMSInput
-            label="sec"
-            value={draft.s}
-            onChange={(s) => setDraft((d) => ({ ...d, s }))}
-            max={59}
-          />
-        </div>
-        {durationInvalid && <FieldError>Enter a duration above zero.</FieldError>}
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
+      {isSteps ? (
         <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            Avg heart rate (bpm)
-          </Label>
+          <Label className="text-xs text-muted-foreground">Steps</Label>
           <Input
             type="number"
             inputMode="numeric"
             min={0}
-            placeholder="0"
+            step={1}
+            placeholder="e.g. 8000"
             className="h-11"
-            value={draft.avgHeartRate}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, avgHeartRate: e.target.value }))
-            }
+            value={draft.steps}
+            onChange={(e) => setDraft((d) => ({ ...d, steps: e.target.value }))}
           />
+          {stepsInvalid && <FieldError>Enter your step count.</FieldError>}
         </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs text-muted-foreground">
-            Calories (kcal)
-          </Label>
-          <Input
-            type="number"
-            inputMode="numeric"
-            min={0}
-            placeholder="0"
-            className="h-11"
-            value={draft.caloriesBurned}
-            onChange={(e) =>
-              setDraft((d) => ({ ...d, caloriesBurned: e.target.value }))
-            }
-          />
-        </div>
-      </div>
+      ) : (
+        <>
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">
+              Distance ({distanceLabel})
+            </Label>
+            <Input
+              type="number"
+              inputMode="decimal"
+              min={0}
+              step="0.01"
+              placeholder="0"
+              className="h-11"
+              value={draft.distance}
+              onChange={(e) =>
+                setDraft((d) => ({ ...d, distance: e.target.value }))
+              }
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs text-muted-foreground">Duration</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <HMSInput
+                label="hrs"
+                value={draft.h}
+                onChange={(h) => setDraft((d) => ({ ...d, h }))}
+              />
+              <HMSInput
+                label="min"
+                value={draft.m}
+                onChange={(m) => setDraft((d) => ({ ...d, m }))}
+                max={59}
+              />
+              <HMSInput
+                label="sec"
+                value={draft.s}
+                onChange={(s) => setDraft((d) => ({ ...d, s }))}
+                max={59}
+              />
+            </div>
+            {durationInvalid && (
+              <FieldError>Enter a duration above zero.</FieldError>
+            )}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Avg heart rate (bpm)
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="0"
+                className="h-11"
+                value={draft.avgHeartRate}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, avgHeartRate: e.target.value }))
+                }
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs text-muted-foreground">
+                Calories (kcal)
+              </Label>
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                placeholder="0"
+                className="h-11"
+                value={draft.caloriesBurned}
+                onChange={(e) =>
+                  setDraft((d) => ({ ...d, caloriesBurned: e.target.value }))
+                }
+              />
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Notes</Label>
@@ -200,19 +232,21 @@ export function CardioTab() {
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
-        <span className="text-sm text-muted-foreground">Pace</span>
-        <span className="text-base font-semibold tabular-nums">{pace}</span>
-      </div>
+      {!isSteps && (
+        <div className="flex items-center justify-between rounded-lg border bg-muted/30 px-4 py-3">
+          <span className="text-sm text-muted-foreground">Pace</span>
+          <span className="text-base font-semibold tabular-nums">{pace}</span>
+        </div>
+      )}
 
       <Button
         type="button"
         className="h-11 w-full"
         onClick={handleSubmit}
-        disabled={durationInvalid}
+        disabled={invalid}
       >
-        <Timer className="size-4" />
-        Log cardio
+        {isSteps ? <Footprints className="size-4" /> : <Timer className="size-4" />}
+        {isSteps ? "Log steps" : "Log cardio"}
       </Button>
     </div>
   )

@@ -143,7 +143,7 @@ export default function Page() {
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-muted-foreground md:text-base">
-            Last {settings.trendRange} days
+            Today
           </p>
           <ManageCards
             order={uiPrefs.cardOrder}
@@ -162,14 +162,20 @@ export default function Page() {
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4">
             {visibleCards.map((key) => {
               const m = computeCardMetric(key, metricData)
-              const trend = m.hasData ? (
+              const trend = !m.hasData ? (
+                <span className="text-xs text-muted-foreground">
+                  No data today
+                </span>
+              ) : !m.hasPrev ? (
+                <span className="text-xs text-muted-foreground">
+                  vs yesterday: n/a
+                </span>
+              ) : (
                 <TrendIndicator
-                  direction={m.trend.direction}
+                  direction={m.direction}
                   text={m.trendText}
                   tone={m.tone}
                 />
-              ) : (
-                <span className="text-xs text-muted-foreground">No data</span>
               )
               return (
                 <Card key={key} className="relative gap-0 py-0">
