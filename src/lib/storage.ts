@@ -18,6 +18,7 @@ export const STORAGE_KEYS = {
   syncCode: "wt_sync_code",
   syncAuto: "wt_sync_auto",
   syncLast: "wt_sync_last",
+  syncEvents: "wt_sync_events",
 } as const
 
 /** All app-owned keys (used for storage-size estimate + clear). */

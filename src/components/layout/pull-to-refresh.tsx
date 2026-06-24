@@ -1,23 +1,30 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
-import { Loader2 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Check, Loader2 } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
+import { useSync } from "@/store/sync"
 
 const THRESHOLD = 70
 const MAX_PULL = 110
 
+type RState = "idle" | "refreshing" | "done"
+
 /**
- * Pull-down-to-refresh for the installed PWA (standalone display mode), where
- * the browser's own pull-to-refresh isn't available. In a normal browser tab
- * this is a no-op so the native behavior is left intact.
+ * Pull-down-to-refresh for the installed PWA (standalone display mode). Pulling
+ * past the threshold runs a sync refresh and shows a Refreshing → Synced
+ * indicator. No-op in a normal browser tab (native pull-to-refresh stays).
  */
 export function PullToRefresh({ children }: { children: ReactNode }) {
+  const { refresh } = useSync()
   const [pull, setPull] = useState(0)
-  const [refreshing, setRefreshing] = useState(false)
+  const [rstate, setRstate] = useState<RState>("idle")
+  const [settling, setSettling] = useState(true)
 
   const pullRef = useRef(0)
   const startYRef = useRef<number | null>(null)
-  const refreshingRef = useRef(false)
-  const [settling, setSettling] = useState(true)
+  const rstateRef = useRef<RState>("idle")
+  rstateRef.current = rstate
+  const refreshRef = useRef(refresh)
+  refreshRef.current = refresh
 
   useEffect(() => {
     const standalone =
@@ -32,7 +39,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     }
 
     function onStart(e: TouchEvent) {
-      if (refreshingRef.current || window.scrollY > 0) {
+      if (rstateRef.current !== "idle" || window.scrollY > 0) {
         startYRef.current = null
         return
       }
@@ -40,7 +47,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     }
 
     function onMove(e: TouchEvent) {
-      if (startYRef.current === null || refreshingRef.current) return
+      if (startYRef.current === null || rstateRef.current !== "idle") return
       const dy = e.touches[0].clientY - startYRef.current
       if (dy <= 0 || window.scrollY > 0) {
         if (pullRef.current !== 0) reset(true)
@@ -53,15 +60,19 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       if (e.cancelable) e.preventDefault()
     }
 
-    function onEnd() {
+    async function onEnd() {
       if (startYRef.current === null) return
       startYRef.current = null
       if (pullRef.current >= THRESHOLD) {
-        refreshingRef.current = true
-        setRefreshing(true)
-        setSettling(true)
-        setPull(THRESHOLD)
-        window.setTimeout(() => window.location.reload(), 350)
+        reset(true)
+        setRstate("refreshing")
+        try {
+          await refreshRef.current()
+        } catch {
+          /* surfaced in the sync audit */
+        }
+        setRstate("done")
+        window.setTimeout(() => setRstate("idle"), 1000)
       } else {
         reset(true)
       }
@@ -79,34 +90,58 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     }
   }, [])
 
+  const showPill = rstate !== "idle"
+  const offset = showPill ? 56 : pull
   const progress = Math.min(pull / THRESHOLD, 1)
 
   return (
     <div className="relative">
-      <div
-        className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
-        style={{
-          transform: `translateY(${pull - 40}px)`,
-          opacity: pull > 4 ? 1 : 0,
-          transition: settling ? "opacity 0.2s, transform 0.2s" : "none",
-        }}
-      >
-        <div className="flex size-9 items-center justify-center rounded-full border bg-background shadow-sm">
-          <Loader2
-            className={cn("size-4 text-primary", refreshing && "animate-spin")}
-            style={{
-              transform: refreshing ? undefined : `rotate(${progress * 270}deg)`,
-              opacity: 0.4 + progress * 0.6,
-            }}
-          />
+      {/* Pull spinner (during the gesture) */}
+      {!showPill && (
+        <div
+          className="pointer-events-none absolute inset-x-0 top-0 z-10 flex justify-center"
+          style={{
+            transform: `translateY(${pull - 40}px)`,
+            opacity: pull > 4 ? 1 : 0,
+            transition: settling ? "opacity 0.2s, transform 0.2s" : "none",
+          }}
+        >
+          <div className="flex size-9 items-center justify-center rounded-full border bg-background shadow-sm">
+            <Loader2
+              className="size-4 text-primary"
+              style={{
+                transform: `rotate(${progress * 270}deg)`,
+                opacity: 0.4 + progress * 0.6,
+              }}
+            />
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Refresh indicator (after release) */}
+      {showPill && (
+        <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center duration-200 animate-in fade-in-0 slide-in-from-top-2">
+          <div className="flex w-44 flex-col gap-2 rounded-2xl border bg-background/95 px-4 py-2.5 shadow-lg backdrop-blur">
+            <div className="flex items-center gap-2 text-sm font-medium">
+              {rstate === "done" ? (
+                <Check className="size-4 text-emerald-500" />
+              ) : (
+                <Loader2 className="size-4 animate-spin text-primary" />
+              )}
+              {rstate === "done" ? "Synced" : "Refreshing…"}
+            </div>
+            <Progress value={rstate === "done" ? 100 : 65} className="h-1" />
+          </div>
+        </div>
+      )}
+
       <div
         style={{
-          transform: `translateY(${pull}px)`,
-          transition: settling
-            ? "transform 0.25s cubic-bezier(0.2,0,0,1)"
-            : "none",
+          transform: `translateY(${offset}px)`,
+          transition:
+            settling || showPill
+              ? "transform 0.3s cubic-bezier(0.2,0,0,1)"
+              : "none",
         }}
       >
         {children}

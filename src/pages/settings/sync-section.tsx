@@ -2,8 +2,11 @@ import { useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import {
   Check,
+  ChevronDown,
+  CircleAlert,
   CloudDownload,
   CloudUpload,
+  Info,
   Loader2,
   Shuffle,
 } from "lucide-react"
@@ -28,21 +31,40 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
-import { useSync } from "@/store/sync"
+import { cn } from "@/lib/utils"
+import { useSync, type SyncEventKind } from "@/store/sync"
 
 function genCode(): string {
   const part = () => Math.random().toString(36).slice(2, 6)
   return `${part()}-${part()}`
 }
 
+function EventIcon({ kind }: { kind: SyncEventKind }) {
+  const cls = "mt-0.5 size-3.5 shrink-0"
+  if (kind === "error")
+    return <CircleAlert className={cn(cls, "text-destructive")} />
+  if (kind === "push")
+    return <CloudUpload className={cn(cls, "text-muted-foreground")} />
+  if (kind === "pull")
+    return <CloudDownload className={cn(cls, "text-muted-foreground")} />
+  return <Info className={cn(cls, "text-muted-foreground")} />
+}
+
 export function SyncSection() {
-  const { code, setCode, auto, setAuto, last, pushNow, pullNow } = useSync()
+  const { code, setCode, auto, setAuto, last, events, clearEvents, pushNow, pullNow } =
+    useSync()
   const [draft, setDraft] = useState(code)
   const [busy, setBusy] = useState<null | "push" | "pull">(null)
+  const [auditOpen, setAuditOpen] = useState(false)
 
   const connected = code.trim().length >= 4
   const draftChanged = draft.trim() !== code.trim()
@@ -163,6 +185,73 @@ export function SyncSection() {
             aria-label="Toggle auto-sync"
           />
         </div>
+
+        {/* Auto-sync audit */}
+        <Collapsible
+          open={auditOpen}
+          onOpenChange={setAuditOpen}
+          className="rounded-lg border"
+        >
+          <CollapsibleTrigger asChild>
+            <button
+              type="button"
+              className="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left"
+            >
+              <div className="space-y-0.5">
+                <span className="text-sm font-medium">Auto-sync audit</span>
+                <p className="text-xs text-muted-foreground">
+                  {events.length === 0
+                    ? "No activity yet"
+                    : `${events.length} recent event${events.length === 1 ? "" : "s"}`}
+                </p>
+              </div>
+              <ChevronDown
+                className={cn(
+                  "size-4 shrink-0 text-muted-foreground transition-transform duration-200",
+                  auditOpen && "rotate-180"
+                )}
+              />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <Separator />
+            {events.length === 0 ? (
+              <p className="px-3 py-3 text-xs text-muted-foreground">
+                Sync activity (pulls, pushes and any errors) will appear here.
+              </p>
+            ) : (
+              <>
+                <div className="max-h-60 divide-y overflow-y-auto">
+                  {events.map((e) => (
+                    <div
+                      key={e.id}
+                      className="flex items-start gap-2.5 px-3 py-2 text-xs"
+                    >
+                      <EventIcon kind={e.kind} />
+                      <span className="min-w-0 flex-1 leading-relaxed">
+                        {e.message}
+                      </span>
+                      <span className="shrink-0 text-muted-foreground tabular-nums">
+                        {formatDistanceToNow(new Date(e.at), { addSuffix: true })}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <Separator />
+                <div className="flex justify-end px-2 py-1.5">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 text-muted-foreground"
+                    onClick={clearEvents}
+                  >
+                    Clear log
+                  </Button>
+                </div>
+              </>
+            )}
+          </CollapsibleContent>
+        </Collapsible>
 
         {/* Manual push / pull */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

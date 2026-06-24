@@ -1,6 +1,6 @@
 import { useState } from "react"
 import { format, parseISO } from "date-fns"
-import { CalendarIcon, Clock } from "lucide-react"
+import { CalendarIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { Input } from "@/components/ui/input"
@@ -61,7 +61,7 @@ export function DateTimePicker({
           <PopoverTrigger asChild>
             <Button
               variant="outline"
-              className="h-11 flex-1 justify-start gap-2 font-normal"
+              className="h-11 min-w-0 flex-1 justify-start gap-2 font-normal"
             >
               <CalendarIcon className="size-4 shrink-0 text-muted-foreground" />
               <span className="truncate">{format(date, "EEE, MMM d, yyyy")}</span>
@@ -79,15 +79,12 @@ export function DateTimePicker({
             />
           </PopoverContent>
         </Popover>
-        <div className="relative w-[7.5rem]">
-          <Clock className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            type="time"
-            value={timeStr}
-            onChange={(e) => setTimePart(e.target.value)}
-            className="h-11 pl-8"
-          />
-        </div>
+        <Input
+          type="time"
+          value={timeStr}
+          onChange={(e) => setTimePart(e.target.value)}
+          className="h-11 w-[7.5rem] shrink-0 justify-center tabular-nums"
+        />
       </div>
     </div>
   )

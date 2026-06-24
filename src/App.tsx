@@ -54,7 +54,7 @@ function Shell() {
       </div>
       <BottomNav />
       {section === "home" && <QuickLogFab />}
-      <Toaster position="bottom-center" richColors />
+      <Toaster position="top-center" richColors />
     </div>
   )
 }
