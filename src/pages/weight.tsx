@@ -68,6 +68,7 @@ export default function Page() {
   )
 
   // ── Stats over the full history ──
+  const hasData = allSorted.length > 0
   const first = allSorted.length ? allSorted[0] : null
   const latest = allSorted.length ? allSorted[allSorted.length - 1] : null
   const current = latest?.weight ?? 0
@@ -121,33 +122,37 @@ export default function Page() {
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Current">
           <span className="text-xl font-semibold tabular-nums">
-            {fmt(current)} {unit}
+            {hasData ? `${fmt(current)} ${unit}` : "-"}
           </span>
         </StatCard>
         <StatCard label="Starting">
           <span className="text-xl font-semibold tabular-nums">
-            {fmt(starting)} {unit}
+            {hasData ? `${fmt(starting)} ${unit}` : "-"}
           </span>
         </StatCard>
         <StatCard label="Net change">
           <span className="text-xl font-semibold tabular-nums">
-            {signed(netChange)} {unit}
+            {hasData ? `${signed(netChange)} ${unit}` : "-"}
           </span>
-          <TrendIndicator
-            direction={changeDir(netChange)}
-            tone={changeTone(netChange)}
-            text={`${signed(netChange)} ${unit}`}
-          />
+          {hasData && (
+            <TrendIndicator
+              direction={changeDir(netChange)}
+              tone={changeTone(netChange)}
+              text={`${signed(netChange)} ${unit}`}
+            />
+          )}
         </StatCard>
         <StatCard label="Avg / week">
           <span className="text-xl font-semibold tabular-nums">
-            {signed(avgWeekly)} {unit}
+            {hasData ? `${signed(avgWeekly)} ${unit}` : "-"}
           </span>
-          <TrendIndicator
-            direction={changeDir(avgWeekly)}
-            tone={changeTone(avgWeekly)}
-            text={`${signed(avgWeekly)} ${unit}/wk`}
-          />
+          {hasData && (
+            <TrendIndicator
+              direction={changeDir(avgWeekly)}
+              tone={changeTone(avgWeekly)}
+              text={`${signed(avgWeekly)} ${unit}/wk`}
+            />
+          )}
         </StatCard>
       </div>
 

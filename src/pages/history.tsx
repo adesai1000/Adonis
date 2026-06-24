@@ -206,6 +206,11 @@ function FoodSection({
                       {fmt(e.fat)} g
                     </span>
                   </p>
+                  {e.notes && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {e.notes}
+                    </p>
+                  )}
                 </div>
                 <DeleteButton
                   label="Delete food entry"

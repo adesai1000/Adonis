@@ -50,7 +50,8 @@ export function TrendIndicator({
   tone?: "good" | "bad" | "neutral"
   className?: string
 }) {
-  const Icon = direction === "up" ? ArrowUp : direction === "down" ? ArrowDown : Minus
+  const Icon =
+    direction === "up" ? ArrowUp : direction === "down" ? ArrowDown : Minus
   const color =
     tone === "good"
       ? "text-emerald-600 dark:text-emerald-400"
@@ -58,8 +59,14 @@ export function TrendIndicator({
         ? "text-destructive"
         : "text-muted-foreground"
   return (
-    <span className={cn("inline-flex items-center gap-1 text-xs font-medium", color, className)}>
-      <Icon className="size-3.5" />
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs font-medium",
+        color,
+        className
+      )}
+    >
+      <Icon className="size-3" />
       {text}
     </span>
   )

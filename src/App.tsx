@@ -44,7 +44,7 @@ function Shell() {
       <div className="flex min-h-dvh flex-col md:pl-56">
         <Header />
         <ResumeBanner />
-        <main className="mx-auto w-full max-w-screen-2xl flex-1 overflow-x-clip px-4 pb-24 pt-5 md:px-8 md:pb-14 md:pt-7 lg:px-10">
+        <main className="mx-auto w-full max-w-screen-2xl flex-1 overflow-x-clip px-4 pb-28 pt-5 md:px-8 md:pb-14 md:pt-7 lg:px-10">
           <PullToRefresh>
             <div key={section} className="animate-in fade-in-50 duration-300">
               <CurrentPage />

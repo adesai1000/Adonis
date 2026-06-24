@@ -62,8 +62,8 @@ export function Sidebar() {
 export function BottomNav() {
   const { section, setSection } = useNav()
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/90 backdrop-blur-md pb-safe md:hidden">
-      <div className="mx-auto flex max-w-lg items-stretch justify-around">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur-md pb-safe md:hidden">
+      <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
         {NAV_ITEMS.map((item) => {
           const active = section === item.key
           const Icon = item.icon
@@ -71,13 +71,32 @@ export function BottomNav() {
             <button
               key={item.key}
               onClick={() => setSection(item.key)}
-              className={cn(
-                "flex min-h-[3.25rem] flex-1 flex-col items-center justify-center gap-0.5 px-1 py-1.5 text-[0.65rem] font-medium transition-colors",
-                active ? "text-primary" : "text-muted-foreground"
-              )}
+              aria-label={item.label}
+              aria-current={active ? "page" : undefined}
+              className="group flex min-h-[4rem] flex-1 flex-col items-center justify-center gap-1 px-0.5 pb-1.5 pt-2"
             >
-              <Icon className={cn("size-5", active && "stroke-[2.5]")} />
-              {item.label}
+              <span
+                className={cn(
+                  "flex h-8 w-14 items-center justify-center rounded-full transition-all duration-200 group-active:scale-90",
+                  active ? "bg-primary/15" : "bg-transparent"
+                )}
+              >
+                <Icon
+                  className={cn(
+                    "size-[1.4rem] transition-colors",
+                    active ? "text-primary" : "text-muted-foreground"
+                  )}
+                  strokeWidth={active ? 2.4 : 2}
+                />
+              </span>
+              <span
+                className={cn(
+                  "text-[0.7rem] font-medium leading-none transition-colors",
+                  active ? "text-primary" : "text-muted-foreground"
+                )}
+              >
+                {item.label}
+              </span>
             </button>
           )
         })}

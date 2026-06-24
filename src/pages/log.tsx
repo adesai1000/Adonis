@@ -15,7 +15,7 @@ export default function LogPage() {
         onValueChange={(v) => setLogTab(v as typeof logTab)}
         className="gap-6"
       >
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid h-11 w-full grid-cols-4">
           <TabsTrigger value="food">Food</TabsTrigger>
           <TabsTrigger value="workout">Workout</TabsTrigger>
           <TabsTrigger value="cardio">Cardio</TabsTrigger>

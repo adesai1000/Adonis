@@ -20,8 +20,30 @@ import type {
 } from "./types"
 
 // ───────────────────────────── Types ─────────────────────────────
+export interface FoodItemSummary {
+  name: string
+  serving: string
+  quantity: number
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  notes?: string
+}
+
+export interface FoodDaySummary {
+  date: string
+  isToday: boolean
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  items: FoodItemSummary[]
+}
+
 export interface WeeklyStats {
   weekLabel: string
+  today: string
   heightInches: number
   height: string
   weightUnit: WeightUnit
@@ -35,10 +57,12 @@ export interface WeeklyStats {
   }
   nutrition: {
     daysLogged: number
-    avgCalories: number
-    avgProtein: number
-    avgCarbs: number
-    avgFat: number
+    avgCaloriesPerLoggedDay: number
+    avgProteinPerLoggedDay: number
+    avgCarbsPerLoggedDay: number
+    avgFatPerLoggedDay: number
+    /** Per-day breakdown of exactly what was eaten (last 7 days). */
+    days: FoodDaySummary[]
   }
   training: {
     sessions: number
@@ -87,19 +111,53 @@ export function buildWeeklyStats(
   const wUnit = settings.weightUnit
   const dUnit = settings.distanceUnit
 
-  // nutrition
+  // nutrition — per-day breakdown with the actual items eaten
+  const todayKey = dateKey(now.toISOString())
   const food = foodLog.filter((e) => inRange(e.datetime, from, now))
-  const dayKeys = new Set(food.map((e) => dateKey(e.datetime)))
-  const daysLogged = dayKeys.size || 1
-  const foodTotals = food.reduce(
-    (a, e) => ({
-      cal: a.cal + (e.calories || 0),
-      p: a.p + (e.protein || 0),
-      c: a.c + (e.carbs || 0),
-      f: a.f + (e.fat || 0),
-    }),
-    { cal: 0, p: 0, c: 0, f: 0 }
-  )
+  const dayMap = new Map<string, FoodDaySummary>()
+  for (const e of food) {
+    const k = dateKey(e.datetime)
+    let day = dayMap.get(k)
+    if (!day) {
+      day = {
+        date: k,
+        isToday: k === todayKey,
+        calories: 0,
+        protein: 0,
+        carbs: 0,
+        fat: 0,
+        items: [],
+      }
+      dayMap.set(k, day)
+    }
+    day.calories += e.calories || 0
+    day.protein += e.protein || 0
+    day.carbs += e.carbs || 0
+    day.fat += e.fat || 0
+    day.items.push({
+      name: e.name,
+      serving: e.serving,
+      quantity: e.quantity,
+      calories: round1(e.calories || 0),
+      protein: round1(e.protein || 0),
+      carbs: round1(e.carbs || 0),
+      fat: round1(e.fat || 0),
+      ...(e.notes ? { notes: e.notes } : {}),
+    })
+  }
+  const foodDays = [...dayMap.values()]
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .map((d) => ({
+      ...d,
+      calories: round1(d.calories),
+      protein: round1(d.protein),
+      carbs: round1(d.carbs),
+      fat: round1(d.fat),
+    }))
+  const daysLogged = foodDays.length
+  const denom = daysLogged || 1
+  const sumOf = (pick: (d: FoodDaySummary) => number) =>
+    round1(foodDays.reduce((s, d) => s + pick(d), 0) / denom)
 
   // training
   const sessions = workoutLog.filter((s) => inRange(s.datetime, from, now))
@@ -156,6 +214,7 @@ export function buildWeeklyStats(
 
   return {
     weekLabel: "last 7 days",
+    today: todayKey,
     heightInches: hi,
     height,
     weightUnit: wUnit,
@@ -168,11 +227,12 @@ export function buildWeeklyStats(
       goalWeight: settings.goalWeight,
     },
     nutrition: {
-      daysLogged: dayKeys.size,
-      avgCalories: round1(foodTotals.cal / daysLogged),
-      avgProtein: round1(foodTotals.p / daysLogged),
-      avgCarbs: round1(foodTotals.c / daysLogged),
-      avgFat: round1(foodTotals.f / daysLogged),
+      daysLogged,
+      avgCaloriesPerLoggedDay: sumOf((d) => d.calories),
+      avgProteinPerLoggedDay: sumOf((d) => d.protein),
+      avgCarbsPerLoggedDay: sumOf((d) => d.carbs),
+      avgFatPerLoggedDay: sumOf((d) => d.fat),
+      days: foodDays,
     },
     training: {
       sessions: sessions.length,
@@ -210,6 +270,11 @@ const SYSTEM_PROMPT = `You are an elite, supportive strength & physique coach re
 Speak directly to the athlete ("you"). Be specific and reference their actual numbers (height, bodyweight change, volume, calories, protein, top lifts). Use their height together with bodyweight and goal weight for body-composition context (e.g. whether calories/protein suit their frame and goal). Be encouraging but honest — call out what is working and what needs attention. Keep every string concise and punchy; no fluff, no medical disclaimers.
 
 Use the athlete's units exactly as provided in the data (e.g. lbs, miles, kcal, g). All weights are already in their preferred unit.
+
+Read the data carefully:
+- "nutrition.days" lists exactly what was eaten each day (item names, servings, quantities, macros, and any notes). Use these real food choices for specific feedback — not just the averages.
+- "today" is the current date. A day with "isToday": true is STILL IN PROGRESS — do NOT conclude the athlete is under-eating from a partial current day; judge full intake only on completed days.
+- "daysLogged" tells you how many days were actually logged. If only 1-2 days exist, treat this as early/limited data: emphasize building consistent logging and training habits rather than declaring intake "dangerously low." Never alarm the athlete based on a single partial day.
 
 Return ONLY a JSON object with EXACTLY these keys:
 {

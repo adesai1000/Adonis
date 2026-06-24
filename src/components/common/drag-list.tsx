@@ -92,6 +92,7 @@ export function DragList<T>({
     setDragIndex(index)
     dragIndexRef.current = index
     document.body.style.userSelect = "none"
+    document.body.style.cursor = "grabbing"
 
     const onMove = (ev: PointerEvent) => {
       const current = dragIndexRef.current
@@ -107,6 +108,7 @@ export function DragList<T>({
       dragIndexRef.current = null
       setDragIndex(null)
       document.body.style.userSelect = ""
+      document.body.style.cursor = ""
       window.removeEventListener("pointermove", onMove)
       window.removeEventListener("pointerup", onUp)
       window.removeEventListener("pointercancel", onUp)

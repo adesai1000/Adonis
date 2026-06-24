@@ -10,7 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { DateTimePicker } from "@/components/common/datetime-picker"
 import { FieldError } from "@/components/common/bits"
 import { formatPace, hmsToSeconds, isoNow } from "@/lib/calc"
@@ -186,7 +185,7 @@ export function CardioTab() {
             )}
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground">
                 Avg heart rate (bpm)
@@ -225,8 +224,9 @@ export function CardioTab() {
 
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Notes</Label>
-        <Textarea
+        <Input
           placeholder="Optional"
+          className="h-11"
           value={draft.notes}
           onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
         />

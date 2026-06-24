@@ -55,6 +55,7 @@ export interface FoodEntry {
   protein: number
   carbs: number
   fat: number
+  notes?: string
 }
 
 // ───────────────────────────── Workouts ─────────────────────────────

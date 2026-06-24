@@ -156,10 +156,10 @@ export default function Page() {
               <TableHeader>
                 <TableRow>
                   <TableHead className="px-4">Meal</TableHead>
-                  <TableHead className="text-right">Calories</TableHead>
-                  <TableHead className="text-right">Protein</TableHead>
-                  <TableHead className="text-right">Carbs</TableHead>
-                  <TableHead className="text-right">Fat</TableHead>
+                  <TableHead className="text-right">Calories (kcal)</TableHead>
+                  <TableHead className="text-right">Protein (g)</TableHead>
+                  <TableHead className="text-right">Carbs (g)</TableHead>
+                  <TableHead className="text-right">Fat (g)</TableHead>
                   <TableHead className="px-4 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -180,16 +180,16 @@ export default function Page() {
                       </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmt(meal.calories)} kcal
+                      {fmt(meal.calories)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmt(meal.protein)} g
+                      {fmt(meal.protein)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmt(meal.carbs)} g
+                      {fmt(meal.carbs)}
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
-                      {fmt(meal.fat)} g
+                      {fmt(meal.fat)}
                     </TableCell>
                     <TableCell className="px-4 text-right">
                       <div className="flex justify-end gap-1">
@@ -265,7 +265,7 @@ function MealCard({
   onDelete: () => void
 }) {
   return (
-    <Card className="gap-3 p-4">
+    <Card className="gap-3 p-4 transition-colors hover:bg-accent/40">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -313,7 +313,7 @@ function MacroStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-md bg-muted/50 py-1.5">
       <div className="text-sm font-semibold tabular-nums">{value}</div>
-      <div className="text-[0.65rem] tracking-wide text-muted-foreground uppercase">
+      <div className="text-xs tracking-wide text-muted-foreground uppercase">
         {label}
       </div>
     </div>

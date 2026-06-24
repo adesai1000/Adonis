@@ -117,7 +117,7 @@ export function DataManagementSection() {
       <CardHeader>
         <CardTitle>Data</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6">
         <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2.5">
           <span className="flex items-center gap-2 text-sm text-muted-foreground">
             <Database className="size-4" />

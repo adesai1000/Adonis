@@ -248,7 +248,7 @@ export default function Page() {
             />
           ) : (
             <>
-              <div className="mb-4 px-2 sm:px-0">
+              <div className="mb-4">
                 <GraphTabs
                   tabs={visibleTabs}
                   active={effectiveTab}
@@ -364,7 +364,7 @@ function GraphTabs({
             type="button"
             onClick={() => onSelect(tab)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-150 active:scale-95 md:text-[0.95rem]",
+              "rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-150 active:scale-95 md:text-base",
               isActive
                 ? "bg-background text-foreground shadow-sm"
                 : "text-muted-foreground hover:text-foreground"

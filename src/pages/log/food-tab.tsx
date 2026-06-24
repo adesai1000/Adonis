@@ -3,6 +3,7 @@ import { Apple, UtensilsCrossed } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Combobox, type ComboOption } from "@/components/common/combobox"
@@ -16,12 +17,14 @@ interface FoodDraft {
   datetime: string
   mealId: string | null
   quantity: number
+  notes: string
 }
 
 const initialDraft = (): FoodDraft => ({
   datetime: isoNow(),
   mealId: null,
   quantity: 1,
+  notes: "",
 })
 
 export function FoodTab() {
@@ -74,6 +77,7 @@ export function FoodTab() {
       protein: round1(meal.protein * qty),
       carbs: round1(meal.carbs * qty),
       fat: round1(meal.fat * qty),
+      notes: draft.notes.trim() || undefined,
     })
     toast.success("Food logged")
     setDraft(initialDraft())
@@ -125,6 +129,16 @@ export function FoodTab() {
             {meal.serving} per serving
           </p>
         )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label className="text-xs text-muted-foreground">Note</Label>
+        <Input
+          placeholder="Optional (e.g. post-workout, cheat meal)"
+          className="h-11"
+          value={draft.notes}
+          onChange={(e) => setDraft((d) => ({ ...d, notes: e.target.value }))}
+        />
       </div>
 
       {totals && (

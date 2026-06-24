@@ -12,7 +12,7 @@ import { useNav, type LogTab } from "@/store/nav"
 import { cn } from "@/lib/utils"
 
 const OPTIONS: { tab: LogTab; label: string; icon: LucideIcon; color: string }[] = [
-  { tab: "food", label: "Food", icon: UtensilsCrossed, color: "text-orange-500" },
+  { tab: "food", label: "Food", icon: UtensilsCrossed, color: "text-amber-500" },
   { tab: "workout", label: "Workout", icon: Dumbbell, color: "text-primary" },
   { tab: "cardio", label: "Cardio", icon: Activity, color: "text-rose-500" },
   { tab: "weight", label: "Body Weight", icon: Scale, color: "text-emerald-500" },
@@ -27,7 +27,7 @@ export function QuickLogFab() {
       <Button
         size="icon"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg shadow-primary/30 md:bottom-8 md:right-8"
+        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg shadow-primary/30 md:bottom-8 md:right-8"
         aria-label="Quick log"
       >
         <Plus className="size-6" />
@@ -50,7 +50,7 @@ export function QuickLogFab() {
                   }}
                   className="flex flex-col items-center justify-center gap-2 rounded-xl border bg-card py-6 transition-colors hover:bg-accent active:scale-[0.98]"
                 >
-                  <Icon className={cn("size-7", opt.color)} />
+                  <Icon className={cn("size-6", opt.color)} />
                   <span className="text-sm font-medium">{opt.label}</span>
                 </button>
               )

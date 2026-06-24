@@ -2,7 +2,6 @@ import { useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import {
   Check,
-  Cloud,
   CloudDownload,
   CloudUpload,
   Loader2,
@@ -87,17 +86,14 @@ export function SyncSection() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Cloud className="size-5 text-primary" />
-          Sync
-        </CardTitle>
+        <CardTitle>Sync</CardTitle>
         <CardDescription>
           Set the same sync code on your phone and computer to share data between
           them. Anyone with the code can read and write it, so pick something only
           you would use.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6">
         {/* Sync code */}
         <div className="space-y-2">
           <Label htmlFor="sync-code">Sync code</Label>
@@ -134,12 +130,17 @@ export function SyncSection() {
             </div>
           </div>
           {connected && (
-            <p className="flex items-center gap-2 text-xs text-muted-foreground">
+            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
               Connected as
               <Badge variant="secondary" className="font-mono">
                 {code}
               </Badge>
-              {last && <span>· last synced {formatDistanceToNow(new Date(last), { addSuffix: true })}</span>}
+              {last && (
+                <span>
+                  · last synced{" "}
+                  {formatDistanceToNow(new Date(last), { addSuffix: true })}
+                </span>
+              )}
             </p>
           )}
         </div>

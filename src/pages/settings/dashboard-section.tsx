@@ -103,9 +103,12 @@ export function DashboardSection() {
 
         {/* Trend cards */}
         <div className="space-y-2">
-          <Label className="text-muted-foreground">
-            Trend cards - toggle and drag to reorder
-          </Label>
+          <div className="space-y-0.5">
+            <Label>Trend cards</Label>
+            <p className="text-xs text-muted-foreground">
+              Toggle and drag to reorder.
+            </p>
+          </div>
           <DragList
             items={uiPrefs.cardOrder}
             getKey={(key) => key}
@@ -129,9 +132,12 @@ export function DashboardSection() {
 
         {/* Graph tabs */}
         <div className="space-y-2">
-          <Label className="text-muted-foreground">
-            Graph tabs - toggle and drag to reorder
-          </Label>
+          <div className="space-y-0.5">
+            <Label>Graph tabs</Label>
+            <p className="text-xs text-muted-foreground">
+              Toggle and drag to reorder.
+            </p>
+          </div>
           <DragList
             items={uiPrefs.graphTabOrder}
             getKey={(key) => key}

@@ -49,7 +49,7 @@ function SyncBadge() {
           : "Connected"
 
   return (
-    <div className="flex items-center gap-1.5 rounded-full border bg-muted/60 py-1 pl-2 pr-2.5 text-xs font-medium">
+    <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
       <span className="relative flex size-2">
         {status === "syncing" && connected && (
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-500 opacity-60" />

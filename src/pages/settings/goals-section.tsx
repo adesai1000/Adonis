@@ -196,7 +196,7 @@ function HeightField() {
   }
 
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-1.5 sm:col-span-2">
       <Label>Height</Label>
       <div className="flex gap-2">
         <div className="relative flex-1">
@@ -244,7 +244,7 @@ export function GoalsSection() {
       <CardHeader>
         <CardTitle>Goals</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-5">
+      <CardContent className="space-y-6">
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NumericGoal field="calorieGoal" label="Daily calories" unit="kcal" />
           <NumericGoal field="proteinGoal" label="Protein" unit="g" />

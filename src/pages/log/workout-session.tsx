@@ -279,17 +279,17 @@ export function WorkoutSession() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted-foreground">No previous data</p>
+              <p className="text-xs text-muted-foreground">No previous data</p>
             )}
           </div>
 
           {/* Set rows */}
           <div className="space-y-2">
             <div className="grid grid-cols-[2rem_1fr_1fr_auto] items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
-              <span>Set</span>
-              <span>Reps</span>
-              <span>Weight</span>
-              <span className="text-right">Unit</span>
+              <span className="text-center">Set</span>
+              <span className="text-center">Reps</span>
+              <span className="text-center">Weight</span>
+              <span className="text-center">Unit</span>
             </div>
             {current.sets.map((st, i) => (
               <SetRow
