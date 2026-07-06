@@ -27,7 +27,7 @@ export function QuickLogFab() {
       <Button
         size="icon"
         onClick={() => setOpen(true)}
-        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-lg shadow-primary/30 md:bottom-8 md:right-8"
+        className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-4 z-30 size-14 rounded-full shadow-[var(--shadow-fab)] md:bottom-8 md:right-8"
         aria-label="Quick log"
       >
         <Plus className="size-6" />

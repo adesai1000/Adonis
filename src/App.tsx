@@ -39,7 +39,7 @@ function CurrentPage() {
 function Shell() {
   const { section } = useNav()
   return (
-    <div className="min-h-dvh bg-background">
+    <div className="min-h-dvh">
       <Sidebar />
       <div className="flex min-h-dvh flex-col md:pl-56">
         <Header />

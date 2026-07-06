@@ -28,9 +28,9 @@ const NAV_ITEMS: NavItem[] = [
 export function Sidebar() {
   const { section, setSection } = useNav()
   return (
-    <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r bg-sidebar md:flex">
+    <aside className="fixed inset-y-0 left-0 z-40 hidden w-56 flex-col border-r border-sidebar-border bg-sidebar/70 backdrop-blur-xl backdrop-saturate-150 md:flex">
       <div className="flex h-14 items-center px-5">
-        <span className="text-sm font-semibold tracking-widest text-muted-foreground">
+        <span className="text-sm font-semibold tracking-widest text-foreground">
           ADONIS
         </span>
       </div>
@@ -43,7 +43,7 @@ export function Sidebar() {
               key={item.key}
               onClick={() => setSection(item.key)}
               className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-all",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
@@ -62,7 +62,7 @@ export function Sidebar() {
 export function BottomNav() {
   const { section, setSection } = useNav()
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 border-t bg-background/95 backdrop-blur-md pb-safe md:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/70 backdrop-blur-xl backdrop-saturate-150 pb-safe md:hidden">
       <div className="mx-auto flex max-w-lg items-stretch justify-around px-1">
         {NAV_ITEMS.map((item) => {
           const active = section === item.key

@@ -4,7 +4,6 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useRef,
   type ReactNode,
 } from "react"
 import { uid } from "@/lib/calc"
@@ -420,24 +419,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   // One-time migration: make sure prefs include any newly-added card/graph keys.
   useEffect(() => {
     setUiPrefs((p) => normalizeUiPrefs(p))
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Testing convenience: whenever the app loads with nothing logged, fill it
-  // with sample data. The ref guards against React StrictMode's double-invoke
-  // so it only seeds once per page load (a full reload of an empty app reseeds).
-  const didSeedRef = useRef(false)
-  useEffect(() => {
-    if (didSeedRef.current) return
-    const empty =
-      foodLog.length === 0 &&
-      workoutLog.length === 0 &&
-      cardioLog.length === 0 &&
-      weightLog.length === 0
-    if (empty) {
-      didSeedRef.current = true
-      loadDemoData()
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
