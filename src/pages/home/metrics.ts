@@ -36,6 +36,7 @@ export const CARD_TITLES: Record<CardKey, string> = {
   protein: "Protein",
   carbs: "Carbs",
   fat: "Fat",
+  sodium: "Sodium",
   cardio: "Cardio",
   bodyweight: "Body Weight",
 }
@@ -202,6 +203,13 @@ export function computeCardMetric(
         foodDay(data.foodLog, today, (e) => e.fat),
         foodDay(data.foodLog, yesterday, (e) => e.fat),
         "g",
+        () => "neutral"
+      )
+    case "sodium":
+      return build(
+        foodDay(data.foodLog, today, (e) => e.sodium ?? 0),
+        foodDay(data.foodLog, yesterday, (e) => e.sodium ?? 0),
+        "mg",
         () => "neutral"
       )
     case "cardio": {

@@ -405,6 +405,7 @@ function foodEntryFromSlot(
     protein: round1(meal.protein * quantity),
     carbs: round1(meal.carbs * quantity),
     fat: round1(meal.fat * quantity),
+    sodium: round1((meal.sodium ?? 0) * quantity),
   }
 }
 

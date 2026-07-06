@@ -28,6 +28,7 @@ export interface FoodItemSummary {
   protein: number
   carbs: number
   fat: number
+  sodium: number // mg
   notes?: string
 }
 
@@ -38,6 +39,7 @@ export interface FoodDaySummary {
   protein: number
   carbs: number
   fat: number
+  sodium: number // mg
   items: FoodItemSummary[]
 }
 
@@ -61,6 +63,7 @@ export interface WeeklyStats {
     avgProteinPerLoggedDay: number
     avgCarbsPerLoggedDay: number
     avgFatPerLoggedDay: number
+    avgSodiumPerLoggedDay: number // mg
     /** Per-day breakdown of exactly what was eaten (last 7 days). */
     days: FoodDaySummary[]
   }
@@ -126,6 +129,7 @@ export function buildWeeklyStats(
         protein: 0,
         carbs: 0,
         fat: 0,
+        sodium: 0,
         items: [],
       }
       dayMap.set(k, day)
@@ -134,6 +138,7 @@ export function buildWeeklyStats(
     day.protein += e.protein || 0
     day.carbs += e.carbs || 0
     day.fat += e.fat || 0
+    day.sodium += e.sodium || 0
     day.items.push({
       name: e.name,
       serving: e.serving,
@@ -142,6 +147,7 @@ export function buildWeeklyStats(
       protein: round1(e.protein || 0),
       carbs: round1(e.carbs || 0),
       fat: round1(e.fat || 0),
+      sodium: round1(e.sodium || 0),
       ...(e.notes ? { notes: e.notes } : {}),
     })
   }
@@ -153,6 +159,7 @@ export function buildWeeklyStats(
       protein: round1(d.protein),
       carbs: round1(d.carbs),
       fat: round1(d.fat),
+      sodium: round1(d.sodium),
     }))
   const daysLogged = foodDays.length
   const denom = daysLogged || 1
@@ -232,6 +239,7 @@ export function buildWeeklyStats(
       avgProteinPerLoggedDay: sumOf((d) => d.protein),
       avgCarbsPerLoggedDay: sumOf((d) => d.carbs),
       avgFatPerLoggedDay: sumOf((d) => d.fat),
+      avgSodiumPerLoggedDay: sumOf((d) => d.sodium),
       days: foodDays,
     },
     training: {
@@ -275,6 +283,7 @@ Read the data carefully:
 - "nutrition.days" lists exactly what was eaten each day (item names, servings, quantities, macros, and any notes). Use these real food choices for specific feedback — not just the averages.
 - "today" is the current date. A day with "isToday": true is STILL IN PROGRESS — do NOT conclude the athlete is under-eating from a partial current day; judge full intake only on completed days.
 - "daysLogged" tells you how many days were actually logged. If only 1-2 days exist, treat this as early/limited data: emphasize building consistent logging and training habits rather than declaring intake "dangerously low." Never alarm the athlete based on a single partial day.
+- Sodium is tracked in mg (per item and as "avgSodiumPerLoggedDay"). Note notably high sodium given cardiovascular and blood-pressure health, but do not alarm over a single day, and treat 0 mg as "not recorded" rather than truly sodium-free.
 
 Return ONLY a JSON object with EXACTLY these keys:
 {

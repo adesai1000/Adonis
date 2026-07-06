@@ -199,6 +199,7 @@ export interface MacroTotals {
   protein: number
   carbs: number
   fat: number
+  sodium: number // mg
 }
 
 export function sumMacros(entries: FoodEntry[]): MacroTotals {
@@ -208,8 +209,9 @@ export function sumMacros(entries: FoodEntry[]): MacroTotals {
       protein: acc.protein + (e.protein || 0),
       carbs: acc.carbs + (e.carbs || 0),
       fat: acc.fat + (e.fat || 0),
+      sodium: acc.sodium + (e.sodium || 0),
     }),
-    { calories: 0, protein: 0, carbs: 0, fat: 0 }
+    { calories: 0, protein: 0, carbs: 0, fat: 0, sodium: 0 }
   )
 }
 

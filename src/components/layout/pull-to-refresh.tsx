@@ -121,7 +121,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
       {/* Refresh indicator (after release) */}
       {showPill && (
         <div className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center duration-200 animate-in fade-in-0 slide-in-from-top-2">
-          <div className="flex w-44 flex-col gap-2 rounded-2xl border bg-background/95 px-4 py-2.5 shadow-lg backdrop-blur">
+          <div className="flex w-44 flex-col gap-2 rounded-2xl border bg-background px-4 py-2.5 shadow-lg">
             <div className="flex items-center gap-2 text-sm font-medium">
               {rstate === "done" ? (
                 <Check className="size-4 text-emerald-500" />

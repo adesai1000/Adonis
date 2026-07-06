@@ -186,7 +186,21 @@ export function WorkoutSession() {
 
   function finishWorkout() {
     if (!activeSession) return
-    addWorkout(buildSession(activeSession))
+    // Keep only what was actually logged: drop empty sets (0 reps AND 0 weight)
+    // and any exercise left with no real sets. You should never be forced to
+    // log every exercise in a routine to save the session.
+    const loggedExercises = activeSession.exercises
+      .map((ex) => ({
+        ...ex,
+        sets: ex.sets.filter((st) => st.reps > 0 || st.weight > 0),
+      }))
+      .filter((ex) => ex.sets.length > 0)
+    if (loggedExercises.length === 0) {
+      toast.error("Log at least one set before saving")
+      setFinishOpen(false)
+      return
+    }
+    addWorkout({ ...buildSession(activeSession), exercises: loggedExercises })
     clearActiveSession()
     setFinishOpen(false)
     toast.success("Workout saved")
@@ -200,6 +214,10 @@ export function WorkoutSession() {
   if (!activeSession) return null
 
   const total = activeSession.exercises.length
+  // How many exercises actually have a logged set (what will be saved).
+  const loggedExerciseCount = activeSession.exercises.filter((ex) =>
+    ex.sets.some((st) => st.reps > 0 || st.weight > 0)
+  ).length
   const current = activeSession.exercises[activeSession.currentIndex]
   const progressPct =
     total > 0 ? ((activeSession.currentIndex + 1) / total) * 100 : 0
@@ -432,7 +450,7 @@ export function WorkoutSession() {
               value={`${fmt(totalVolume)}`}
               unit={settings.weightUnit}
             />
-            <SummaryStat label="Exercises" value={`${total}`} />
+            <SummaryStat label="Exercises" value={`${loggedExerciseCount}`} />
             <SummaryStat
               label="Duration"
               value={formatDuration(elapsed)}

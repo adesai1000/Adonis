@@ -194,18 +194,18 @@ export function seedExercises(): Exercise[] {
 
 // ───────────────────────────── Meals ─────────────────────────────
 const MEAL_SEED: Omit<Meal, "id" | "builtIn">[] = [
-  { name: "Oatmeal", serving: "100g", calories: 389, protein: 16.9, carbs: 66.3, fat: 6.9 },
-  { name: "Grilled Chicken Breast", serving: "150g", calories: 248, protein: 46.5, carbs: 0, fat: 5.4 },
-  { name: "Whey Protein Shake", serving: "1 scoop", calories: 120, protein: 24, carbs: 3, fat: 1.5 },
-  { name: "Brown Rice", serving: "100g cooked", calories: 123, protein: 2.7, carbs: 25.6, fat: 1 },
-  { name: "Scrambled Eggs", serving: "2 eggs", calories: 182, protein: 12.6, carbs: 1.6, fat: 13.6 },
-  { name: "Greek Yogurt", serving: "170g", calories: 100, protein: 17, carbs: 6, fat: 0.7 },
-  { name: "Avocado", serving: "½ medium", calories: 161, protein: 2, carbs: 8.5, fat: 14.7 },
-  { name: "Sweet Potato", serving: "1 medium", calories: 112, protein: 2, carbs: 26.2, fat: 0.1 },
-  { name: "Banana", serving: "1 medium", calories: 105, protein: 1.3, carbs: 27, fat: 0.4 },
-  { name: "Whole Milk", serving: "250ml", calories: 153, protein: 8, carbs: 12, fat: 8 },
-  { name: "Almonds", serving: "30g", calories: 173, protein: 6.3, carbs: 6.1, fat: 14.9 },
-  { name: "Salmon Fillet", serving: "150g", calories: 280, protein: 34, carbs: 0, fat: 16 },
+  { name: "Oatmeal", serving: "100g", calories: 389, protein: 16.9, carbs: 66.3, fat: 6.9, sodium: 5 },
+  { name: "Grilled Chicken Breast", serving: "150g", calories: 248, protein: 46.5, carbs: 0, fat: 5.4, sodium: 110 },
+  { name: "Whey Protein Shake", serving: "1 scoop", calories: 120, protein: 24, carbs: 3, fat: 1.5, sodium: 50 },
+  { name: "Brown Rice", serving: "100g cooked", calories: 123, protein: 2.7, carbs: 25.6, fat: 1, sodium: 5 },
+  { name: "Scrambled Eggs", serving: "2 eggs", calories: 182, protein: 12.6, carbs: 1.6, fat: 13.6, sodium: 180 },
+  { name: "Greek Yogurt", serving: "170g", calories: 100, protein: 17, carbs: 6, fat: 0.7, sodium: 65 },
+  { name: "Avocado", serving: "½ medium", calories: 161, protein: 2, carbs: 8.5, fat: 14.7, sodium: 7 },
+  { name: "Sweet Potato", serving: "1 medium", calories: 112, protein: 2, carbs: 26.2, fat: 0.1, sodium: 70 },
+  { name: "Banana", serving: "1 medium", calories: 105, protein: 1.3, carbs: 27, fat: 0.4, sodium: 1 },
+  { name: "Whole Milk", serving: "250ml", calories: 153, protein: 8, carbs: 12, fat: 8, sodium: 120 },
+  { name: "Almonds", serving: "30g", calories: 173, protein: 6.3, carbs: 6.1, fat: 14.9, sodium: 0 },
+  { name: "Salmon Fillet", serving: "150g", calories: 280, protein: 34, carbs: 0, fat: 16, sodium: 75 },
 ]
 
 export function seedMeals(): Meal[] {
@@ -237,6 +237,7 @@ export const defaultUiPrefs: UiPrefs = {
     "reps",
     "carbs",
     "fat",
+    "sodium",
     "cardio",
   ],
   cardVisibility: {
@@ -247,6 +248,7 @@ export const defaultUiPrefs: UiPrefs = {
     reps: false,
     carbs: false,
     fat: false,
+    sodium: false,
     cardio: false,
   },
   graphTabOrder: ["bodyweight", "calories", "protein"],

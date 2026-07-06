@@ -54,7 +54,12 @@ function Shell() {
       </div>
       <BottomNav />
       {section === "home" && <QuickLogFab />}
-      <Toaster position="top-center" richColors />
+      <Toaster
+        position="top-center"
+        richColors
+        offset={{ top: "calc(env(safe-area-inset-top) + 16px)" }}
+        mobileOffset={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+      />
     </div>
   )
 }

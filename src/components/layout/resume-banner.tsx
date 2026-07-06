@@ -26,7 +26,7 @@ export function ResumeBanner() {
   const exerciseCount = activeSession.exercises.length
 
   return (
-    <div className="sticky top-14 z-20 border-b bg-primary/10 px-4 py-2.5 md:top-16 md:px-8 lg:px-10">
+    <div className="sticky top-14 z-20 border-b bg-muted px-4 py-2.5 md:top-16 md:px-8 lg:px-10">
       <div className="mx-auto flex max-w-screen-2xl items-center gap-3">
         <span className="relative flex size-2.5 shrink-0">
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />

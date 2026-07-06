@@ -41,6 +41,7 @@ export interface Meal {
   protein: number
   carbs: number
   fat: number
+  sodium?: number // mg (optional for backward compatibility)
   builtIn?: boolean
 }
 
@@ -55,6 +56,7 @@ export interface FoodEntry {
   protein: number
   carbs: number
   fat: number
+  sodium?: number // mg, total AFTER quantity multiplier (optional for back-compat)
   notes?: string
 }
 
@@ -166,6 +168,7 @@ export type CardKey =
   | "protein"
   | "carbs"
   | "fat"
+  | "sodium"
   | "cardio"
   | "bodyweight"
 export type GraphTab = "bodyweight" | "calories" | "protein"

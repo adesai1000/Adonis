@@ -9,6 +9,7 @@ import {
   LineChart as LineChartIcon,
   Repeat,
   Scale,
+  Soup,
   Wheat,
   X,
 } from "lucide-react"
@@ -54,6 +55,7 @@ const CARD_ICONS: Record<CardKey, React.ReactNode> = {
   protein: <Beef className="size-4" />,
   carbs: <Wheat className="size-4" />,
   fat: <Droplet className="size-4" />,
+  sodium: <Soup className="size-4" />,
   cardio: <Activity className="size-4" />,
   bodyweight: <Scale className="size-4" />,
 }

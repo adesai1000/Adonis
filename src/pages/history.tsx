@@ -203,7 +203,7 @@ function FoodSection({
                     <span className="text-muted-foreground">
                       {" "}
                       · P {fmt(e.protein)} g · C {fmt(e.carbs)} g · F{" "}
-                      {fmt(e.fat)} g
+                      {fmt(e.fat)} g · Na {fmt(e.sodium ?? 0, 0)} mg
                     </span>
                   </p>
                   {e.notes && (
@@ -221,7 +221,7 @@ function FoodSection({
             ))}
           </ul>
           <Separator />
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-5">
             <div>
               <p className="text-xs text-muted-foreground">Calories</p>
               <p className="font-semibold">{fmtNum(totals.calories)} kcal</p>
@@ -237,6 +237,10 @@ function FoodSection({
             <div>
               <p className="text-xs text-muted-foreground">Fat</p>
               <p className="font-semibold">{fmt(totals.fat)} g</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Sodium</p>
+              <p className="font-semibold">{fmt(totals.sodium, 0)} mg</p>
             </div>
           </div>
         </div>

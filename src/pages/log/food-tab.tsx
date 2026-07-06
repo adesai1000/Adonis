@@ -57,6 +57,7 @@ export function FoodTab() {
         protein: round1(meal.protein * qty),
         carbs: round1(meal.carbs * qty),
         fat: round1(meal.fat * qty),
+        sodium: round1((meal.sodium ?? 0) * qty),
       }
     : null
 
@@ -77,6 +78,7 @@ export function FoodTab() {
       protein: round1(meal.protein * qty),
       carbs: round1(meal.carbs * qty),
       fat: round1(meal.fat * qty),
+      sodium: round1((meal.sodium ?? 0) * qty),
       notes: draft.notes.trim() || undefined,
     })
     toast.success("Food logged")
@@ -151,10 +153,11 @@ export function FoodTab() {
               </span>
             </div>
             <Separator />
-            <div className="grid grid-cols-3 gap-2 text-center">
+            <div className="grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
               <Macro label="Protein" value={totals.protein} />
               <Macro label="Carbs" value={totals.carbs} />
               <Macro label="Fat" value={totals.fat} />
+              <Macro label="Sodium" value={totals.sodium} unit="mg" />
             </div>
           </CardContent>
         </Card>
@@ -173,10 +176,20 @@ export function FoodTab() {
   )
 }
 
-function Macro({ label, value }: { label: string; value: number }) {
+function Macro({
+  label,
+  value,
+  unit = "g",
+}: {
+  label: string
+  value: number
+  unit?: string
+}) {
   return (
     <div className="space-y-0.5">
-      <p className="text-base font-semibold tabular-nums">{fmt(value)} g</p>
+      <p className="text-base font-semibold tabular-nums">
+        {fmt(value)} {unit}
+      </p>
       <p className="text-xs text-muted-foreground">{label}</p>
     </div>
   )

@@ -47,6 +47,7 @@ interface MealForm {
   protein: string
   carbs: string
   fat: string
+  sodium: string
 }
 
 const emptyForm: MealForm = {
@@ -56,6 +57,7 @@ const emptyForm: MealForm = {
   protein: "",
   carbs: "",
   fat: "",
+  sodium: "",
 }
 
 interface FormErrors {
@@ -64,6 +66,7 @@ interface FormErrors {
   protein?: string
   carbs?: string
   fat?: string
+  sodium?: string
 }
 
 type EditorState =
@@ -76,6 +79,7 @@ const MACRO_FIELDS = [
   { key: "protein", label: "Protein", unit: "g" },
   { key: "carbs", label: "Carbs", unit: "g" },
   { key: "fat", label: "Fat", unit: "g" },
+  { key: "sodium", label: "Sodium", unit: "mg" },
 ] as const
 
 // ───────────────────────────── Page ─────────────────────────────
@@ -160,6 +164,7 @@ export default function Page() {
                   <TableHead className="text-right">Protein (g)</TableHead>
                   <TableHead className="text-right">Carbs (g)</TableHead>
                   <TableHead className="text-right">Fat (g)</TableHead>
+                  <TableHead className="text-right">Sodium (mg)</TableHead>
                   <TableHead className="px-4 text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
@@ -190,6 +195,9 @@ export default function Page() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {fmt(meal.fat)}
+                    </TableCell>
+                    <TableCell className="text-right tabular-nums">
+                      {fmt(meal.sodium ?? 0, 0)}
                     </TableCell>
                     <TableCell className="px-4 text-right">
                       <div className="flex justify-end gap-1">
@@ -305,6 +313,14 @@ function MealCard({
         <MacroStat label="C" value={`${fmt(meal.carbs)} g`} />
         <MacroStat label="F" value={`${fmt(meal.fat)} g`} />
       </div>
+      <div className="flex items-center justify-center gap-1.5 text-xs">
+        <span className="tracking-wide text-muted-foreground uppercase">
+          Sodium
+        </span>
+        <span className="font-semibold tabular-nums">
+          {fmt(meal.sodium ?? 0, 0)} mg
+        </span>
+      </div>
     </Card>
   )
 }
@@ -347,6 +363,7 @@ function MealEditor({
           protein: String(editor.meal.protein),
           carbs: String(editor.meal.carbs),
           fat: String(editor.meal.fat),
+          sodium: String(editor.meal.sodium ?? ""),
         }
       : emptyForm
   )
@@ -381,6 +398,7 @@ function MealEditor({
     const protein = parseMacro(form.protein, "protein")
     const carbs = parseMacro(form.carbs, "carbs")
     const fat = parseMacro(form.fat, "fat")
+    const sodium = parseMacro(form.sodium, "sodium")
 
     return {
       ok: Object.keys(errs).length === 0,
@@ -392,6 +410,7 @@ function MealEditor({
         protein,
         carbs,
         fat,
+        sodium,
       },
     }
   }

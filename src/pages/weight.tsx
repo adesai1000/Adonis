@@ -185,10 +185,10 @@ export default function Page() {
                     const w = convertWeight(entry.weight, entry.unit, unit)
                     return (
                       <TableRow key={entry.id}>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium tabular-nums">
                           {formatDate(entry.datetime)}
                         </TableCell>
-                        <TableCell className="hidden text-muted-foreground sm:table-cell">
+                        <TableCell className="hidden text-muted-foreground tabular-nums sm:table-cell">
                           {formatTime(entry.datetime)}
                         </TableCell>
                         <TableCell className="text-right font-mono tabular-nums">

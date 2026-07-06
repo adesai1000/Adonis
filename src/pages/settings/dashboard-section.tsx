@@ -23,6 +23,7 @@ const CARD_LABELS: Record<CardKey, string> = {
   protein: "Protein",
   carbs: "Carbs",
   fat: "Fat",
+  sodium: "Sodium",
   cardio: "Cardio",
   bodyweight: "Body weight",
 }
