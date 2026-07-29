@@ -1,0 +1,7 @@
+{
+  "rewrites": [
+    { "source": "/landing", "destination": "/landing.html" },
+    { "source": "/api/whoop/callback", "destination": "/api/whoop?action=callback" },
+    { "source": "/api/googlefit/callback", "destination": "/api/googlefit?action=callback" }
+  ]
+}

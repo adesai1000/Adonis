@@ -60,13 +60,24 @@ function EventIcon({ kind }: { kind: SyncEventKind }) {
 }
 
 export function SyncSection() {
-  const { code, setCode, auto, setAuto, last, events, clearEvents, pushNow, pullNow } =
-    useSync()
+  const {
+    syncMode,
+    code,
+    setCode,
+    auto,
+    setAuto,
+    last,
+    events,
+    clearEvents,
+    pushNow,
+    pullNow,
+  } = useSync()
   const [draft, setDraft] = useState(code)
   const [busy, setBusy] = useState<null | "push" | "pull">(null)
   const [auditOpen, setAuditOpen] = useState(false)
 
-  const connected = code.trim().length >= 4
+  const accountMode = syncMode === "account"
+  const connected = accountMode || code.trim().length >= 4
   const draftChanged = draft.trim() !== code.trim()
 
   function connect() {
@@ -96,7 +107,11 @@ export function SyncSection() {
     try {
       const applied = await pullNow()
       toast.success(
-        applied ? "Pulled latest from cloud" : "Nothing stored under this code yet"
+        applied
+          ? "Pulled latest from cloud"
+          : accountMode
+            ? "Nothing stored in your account yet"
+            : "Nothing stored under this code yet"
       )
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Pull failed")
@@ -109,82 +124,100 @@ export function SyncSection() {
     <Card>
       <CardHeader>
         <CardTitle>Sync</CardTitle>
-        <CardDescription>
-          Set the same sync code on your phone and computer to share data between
-          them. Anyone with the code can read and write it, so pick something only
-          you would use.
-        </CardDescription>
+        {!accountMode && (
+          <CardDescription>
+            Set the same sync code on your phone and computer to share data between
+            them. Anyone with the code can read and write it, so pick something only
+            you would use.
+          </CardDescription>
+        )}
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Sync code */}
-        <div className="space-y-2">
-          <Label htmlFor="sync-code">Sync code</Label>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Input
-              id="sync-code"
-              value={draft}
-              onChange={(e) => setDraft(e.target.value)}
-              placeholder="e.g. blue-otter-42"
-              className="h-11"
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-            />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 gap-2"
-                onClick={() => setDraft(genCode())}
-              >
-                <Shuffle className="size-4" />
-                Generate
-              </Button>
-              <Button
-                type="button"
-                className="h-11 flex-1 gap-2"
-                onClick={connect}
-                disabled={!draftChanged && connected}
-              >
-                <Check className="size-4" />
-                Use code
-              </Button>
-            </div>
-          </div>
-          {connected && (
-            <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
-              Connected as
-              <Badge variant="secondary" className="font-mono">
-                {code}
-              </Badge>
-              {last && (
-                <span>
-                  · last synced{" "}
-                  {formatDistanceToNow(new Date(last), { addSuffix: true })}
-                </span>
-              )}
+        {accountMode ? (
+          <div className="space-y-1 rounded-lg border bg-muted/40 p-3">
+            <p className="text-sm leading-snug font-medium">
+              Account sync is on — changes back up to your account
+              automatically.
             </p>
-          )}
-        </div>
-
-        <Separator />
-
-        {/* Auto-sync */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="space-y-0.5">
-            <Label htmlFor="auto-sync">Auto-sync</Label>
             <p className="text-xs text-muted-foreground">
-              Pull on open and push changes automatically.
+              {last
+                ? `Last synced ${formatDistanceToNow(new Date(last), { addSuffix: true })}`
+                : "Not synced yet"}
             </p>
           </div>
-          <Switch
-            id="auto-sync"
-            checked={auto}
-            onCheckedChange={setAuto}
-            disabled={!connected}
-            aria-label="Toggle auto-sync"
-          />
-        </div>
+        ) : (
+          <>
+            {/* Sync code */}
+            <div className="space-y-2">
+              <Label htmlFor="sync-code">Sync code</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="sync-code"
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  placeholder="e.g. blue-otter-42"
+                  className="h-11"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
+                />
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-11 gap-2"
+                    onClick={() => setDraft(genCode())}
+                  >
+                    <Shuffle className="size-4" />
+                    Generate
+                  </Button>
+                  <Button
+                    type="button"
+                    className="h-11 flex-1 gap-2"
+                    onClick={connect}
+                    disabled={!draftChanged && connected}
+                  >
+                    <Check className="size-4" />
+                    Use code
+                  </Button>
+                </div>
+              </div>
+              {connected && (
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                  Connected as
+                  <Badge variant="secondary" className="font-mono">
+                    {code}
+                  </Badge>
+                  {last && (
+                    <span>
+                      · last synced{" "}
+                      {formatDistanceToNow(new Date(last), { addSuffix: true })}
+                    </span>
+                  )}
+                </p>
+              )}
+            </div>
+
+            <Separator />
+
+            {/* Auto-sync */}
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-0.5">
+                <Label htmlFor="auto-sync">Auto-sync</Label>
+                <p className="text-xs text-muted-foreground">
+                  Pull on open and push changes automatically.
+                </p>
+              </div>
+              <Switch
+                id="auto-sync"
+                checked={auto}
+                onCheckedChange={setAuto}
+                disabled={!connected}
+                aria-label="Toggle auto-sync"
+              />
+            </div>
+          </>
+        )}
 
         {/* Auto-sync audit */}
         <Collapsible
@@ -288,12 +321,21 @@ export function SyncSection() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Replace local data?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This overwrites everything on this device with the copy stored
-                  under code{" "}
-                  <span className="font-mono font-semibold text-foreground">
-                    {code}
-                  </span>
-                  .
+                  {accountMode ? (
+                    <>
+                      This replaces the local data on this device with your
+                      account copy.
+                    </>
+                  ) : (
+                    <>
+                      This overwrites everything on this device with the copy
+                      stored under code{" "}
+                      <span className="font-mono font-semibold text-foreground">
+                        {code}
+                      </span>
+                      .
+                    </>
+                  )}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>

@@ -1,3 +1,5 @@
+import { AccountSection } from "@/pages/settings/account-section"
+import { IntegrationsSection } from "@/pages/settings/integrations-section"
 import { DisplaySection } from "@/pages/settings/display-section"
 import { DashboardSection } from "@/pages/settings/dashboard-section"
 import { GoalsSection } from "@/pages/settings/goals-section"
@@ -9,6 +11,8 @@ import { DataManagementSection } from "@/pages/settings/data-management-section"
 export default function SettingsPage() {
   return (
     <div className="space-y-6">
+      <AccountSection />
+      <IntegrationsSection />
       <DisplaySection />
       <DashboardSection />
       <GoalsSection />

@@ -230,6 +230,7 @@ export const defaultSettings: Settings = {
 
 export const defaultUiPrefs: UiPrefs = {
   cardOrder: [
+    "recovery",
     "calories",
     "protein",
     "volume",
@@ -241,6 +242,7 @@ export const defaultUiPrefs: UiPrefs = {
     "cardio",
   ],
   cardVisibility: {
+    recovery: true,
     calories: true,
     protein: true,
     volume: true,

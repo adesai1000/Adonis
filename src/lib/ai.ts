@@ -13,6 +13,7 @@ import type {
   CardioEntry,
   DistanceUnit,
   FoodEntry,
+  RecoveryEntry,
   Settings,
   WeightEntry,
   WeightUnit,
@@ -85,6 +86,15 @@ export interface WeeklyStats {
     latest: number | null
     change: number | null
   }
+  /** Wearable recovery averages (Whoop / Google Fit); absent when nothing imported this week. */
+  recovery?: {
+    daysTracked: number
+    avgRecoveryScore?: number
+    avgHrvMs?: number
+    avgRestingHeartRate?: number
+    avgSleepHours?: number
+    avgDayStrain?: number
+  }
 }
 
 export interface CoachSummary {
@@ -102,12 +112,13 @@ export interface CoachInput {
   foodLog: FoodEntry[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
+  recoveryLog?: RecoveryEntry[]
   settings: Settings
 }
 
 // ───────────────────────────── Build the weekly snapshot ─────────────────────────────
 export function buildWeeklyStats(
-  { workoutLog, foodLog, cardioLog, weightLog, settings }: CoachInput,
+  { workoutLog, foodLog, cardioLog, weightLog, recoveryLog, settings }: CoachInput,
   now: Date = new Date()
 ): WeeklyStats {
   const from = subDays(now, 7)
@@ -216,6 +227,38 @@ export function buildWeeklyStats(
   const start = weights.length ? weights[0] : null
   const latest = weights.length ? weights[weights.length - 1] : null
 
+  // recovery (wearable imports)
+  const recoveryEntries = (recoveryLog ?? []).filter((e) =>
+    inRange(e.date, from, now)
+  )
+  let recovery: WeeklyStats["recovery"]
+  if (recoveryEntries.length > 0) {
+    const avg = (
+      pick: (e: RecoveryEntry) => number | undefined
+    ): number | undefined => {
+      const vals = recoveryEntries
+        .map(pick)
+        .filter((v): v is number => typeof v === "number" && isFinite(v))
+      if (vals.length === 0) return undefined
+      return round1(vals.reduce((s, v) => s + v, 0) / vals.length)
+    }
+    const avgRecoveryScore = avg((e) => e.recoveryScore)
+    const avgHrvMs = avg((e) => e.hrvMs)
+    const avgRestingHeartRate = avg((e) => e.restingHeartRate)
+    const avgSleepHours = avg((e) =>
+      e.sleepDurationSec != null ? e.sleepDurationSec / 3600 : undefined
+    )
+    const avgDayStrain = avg((e) => e.dayStrain)
+    recovery = {
+      daysTracked: new Set(recoveryEntries.map((e) => e.date)).size,
+      ...(avgRecoveryScore !== undefined ? { avgRecoveryScore } : {}),
+      ...(avgHrvMs !== undefined ? { avgHrvMs } : {}),
+      ...(avgRestingHeartRate !== undefined ? { avgRestingHeartRate } : {}),
+      ...(avgSleepHours !== undefined ? { avgSleepHours } : {}),
+      ...(avgDayStrain !== undefined ? { avgDayStrain } : {}),
+    }
+  }
+
   const hi = settings.heightInches || 0
   const height = hi > 0 ? `${Math.floor(hi / 12)} ft ${hi % 12} in` : "not set"
 
@@ -260,6 +303,7 @@ export function buildWeeklyStats(
       latest: latest != null ? round1(latest) : null,
       change: start != null && latest != null ? round1(latest - start) : null,
     },
+    ...(recovery ? { recovery } : {}),
   }
 }
 
@@ -284,6 +328,7 @@ Read the data carefully:
 - "today" is the current date. A day with "isToday": true is STILL IN PROGRESS — do NOT conclude the athlete is under-eating from a partial current day; judge full intake only on completed days.
 - "daysLogged" tells you how many days were actually logged. If only 1-2 days exist, treat this as early/limited data: emphasize building consistent logging and training habits rather than declaring intake "dangerously low." Never alarm the athlete based on a single partial day.
 - Sodium is tracked in mg (per item and as "avgSodiumPerLoggedDay"). Note notably high sodium given cardiovascular and blood-pressure health, but do not alarm over a single day, and treat 0 mg as "not recorded" rather than truly sodium-free.
+- When a "recovery" block is present, it holds weekly averages imported from a wearable (Whoop / Google Fit): recovery score (0-100, higher is better), HRV in ms, resting heart rate in bpm, sleep hours, and day strain (0-21). Factor these into your intensity recommendations — low recovery, poor sleep, or persistently high strain call for lighter loads, extra rest, or a deload emphasis, while strong recovery and solid sleep support pushing volume and intensity next week. Ignore recovery entirely when the block is absent.
 
 Return ONLY a JSON object with EXACTLY these keys:
 {
@@ -297,11 +342,14 @@ Do not wrap the JSON in markdown. Do not add any keys beyond those five.`
 
 export async function generateCoachSummary(
   stats: WeeklyStats,
+  accessToken?: string,
   now: Date = new Date()
 ): Promise<CoachSummary> {
+  const headers: Record<string, string> = { "Content-Type": "application/json" }
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
   const res = await fetch("/api/deepseek", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify({
       model: "deepseek-v4-flash",
       messages: [
@@ -321,6 +369,22 @@ export async function generateCoachSummary(
 
   if (!res.ok) {
     const text = await res.text().catch(() => "")
+    let apiError: string | undefined
+    try {
+      apiError = (JSON.parse(text) as { error?: string }).error
+    } catch {
+      /* not JSON */
+    }
+    if (res.status === 403 && apiError === "pro_required") {
+      throw new Error(
+        "AI coaching is a Pro feature. Upgrade in Settings → Account."
+      )
+    }
+    if (res.status === 401 && apiError === "auth_required") {
+      throw new Error("Your session has expired — sign in again, then regenerate.")
+    }
+    // Remaining 401/403s came from DeepSeek itself (bad upstream key), not
+    // from the auth gate — keep the developer hint for those.
     throw new Error(
       res.status === 401 || res.status === 403
         ? "DeepSeek rejected the API key. Check DEEPSEEK_API in your .env and restart the dev server."

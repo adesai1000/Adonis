@@ -26,10 +26,13 @@ import type {
   BackupData,
   CardKey,
   CardioEntry,
+  DataSource,
   Exercise,
   FoodEntry,
   GraphTab,
+  IntegrationSyncResult,
   Meal,
+  RecoveryEntry,
   Routine,
   Settings,
   UiPrefs,
@@ -40,6 +43,40 @@ import type {
 
 const ALL_CARD_KEYS = defaultUiPrefs.cardOrder as CardKey[]
 const ALL_GRAPH_TABS = defaultUiPrefs.graphTabOrder as GraphTab[]
+
+/**
+ * Pure, idempotent upsert-by-key of imported entries into a list. Returns the
+ * SAME `list` reference when nothing changed (React bails out of the update).
+ * Used inside functional setState updaters, so it must be side-effect free:
+ * two providers can sync concurrently and each updater re-runs against the
+ * latest state instead of a stale render snapshot.
+ */
+function mergeListPure<T>(
+  list: T[],
+  incoming: T[],
+  keyOf: (entry: T) => string | null
+): T[] {
+  let next: T[] | null = null
+  const index = new Map<string, number>()
+  list.forEach((entry, i) => {
+    const k = keyOf(entry)
+    if (k) index.set(k, i)
+  })
+  for (const entry of incoming) {
+    const k = keyOf(entry)
+    if (!k) continue
+    const at = index.get(k)
+    if (at === undefined) {
+      next = next ?? [...list]
+      index.set(k, next.length)
+      next.push(entry)
+    } else if (JSON.stringify((next ?? list)[at]) !== JSON.stringify(entry)) {
+      next = next ?? [...list]
+      next[at] = entry
+    }
+  }
+  return next ?? list
+}
 
 /** Ensure stored prefs include every card/graph key (forward-compatible migration). */
 function normalizeUiPrefs(p: UiPrefs): UiPrefs {
@@ -71,6 +108,7 @@ export interface Store {
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
+  recoveryLog: RecoveryEntry[]
   exercises: Exercise[]
   routines: Routine[]
   settings: Settings
@@ -100,6 +138,13 @@ export interface Store {
   // ── weight log ──
   addWeight: (data: Omit<WeightEntry, "id">) => string
   deleteWeight: (id: string) => void
+
+  // ── recovery log ──
+  addRecovery: (data: Omit<RecoveryEntry, "id">) => string
+  deleteRecovery: (id: string) => void
+  mergeIntegrationData: (
+    result: IntegrationSyncResult
+  ) => { added: number; updated: number }
 
   // ── exercises ──
   addExercise: (data: Omit<Exercise, "id" | "builtIn">) => string
@@ -153,6 +198,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
   const [weightLog, setWeightLog] = usePersistentState<WeightEntry[]>(
     STORAGE_KEYS.weightLog,
+    []
+  )
+  const [recoveryLog, setRecoveryLog] = usePersistentState<RecoveryEntry[]>(
+    STORAGE_KEYS.recoveryLog,
     []
   )
   const [exercises, setExercises] = usePersistentState<Exercise[]>(
@@ -255,6 +304,73 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [setWeightLog]
   )
 
+  // ── recovery log ──
+  const addRecovery = useCallback(
+    (data: Omit<RecoveryEntry, "id">) => {
+      const id = uid()
+      setRecoveryLog((l) => [...l, { ...data, id }])
+      return id
+    },
+    [setRecoveryLog]
+  )
+  const deleteRecovery = useCallback(
+    (id: string) => setRecoveryLog((l) => l.filter((x) => x.id !== id)),
+    [setRecoveryLog]
+  )
+
+  const mergeIntegrationData = useCallback(
+    (result: IntegrationSyncResult): { added: number; updated: number } => {
+      // Counts (toast only) come from a synchronous pre-pass against this
+      // render's lists — React runs the updaters below later, and StrictMode
+      // double-invokes them, so they must stay pure and count nothing.
+      let added = 0
+      let updated = 0
+      function count<T extends { source?: DataSource }>(
+        list: T[],
+        incoming: T[],
+        keyOf: (entry: T) => string | null
+      ): void {
+        const existing = new Map<string, T>()
+        for (const entry of list) {
+          const k = keyOf(entry)
+          if (k) existing.set(k, entry)
+        }
+        for (const entry of incoming) {
+          const k = keyOf(entry)
+          if (!k) continue
+          const prev = existing.get(k)
+          if (prev === undefined) added += 1
+          else if (JSON.stringify(prev) !== JSON.stringify(entry)) updated += 1
+        }
+      }
+
+      const recoveryKey = (e: RecoveryEntry) =>
+        e.source && e.source !== "manual" ? `${e.source}|${e.date}` : null
+      const cardioKey = (e: CardioEntry) =>
+        e.source && e.source !== "manual" && e.externalId
+          ? `${e.source}|${e.externalId}`
+          : null
+      const weightKey = (e: WeightEntry) =>
+        e.source && e.source !== "manual" && e.externalId
+          ? `${e.source}|${e.externalId}`
+          : null
+
+      count(recoveryLog, result.recovery, recoveryKey)
+      count(cardioLog, result.cardio, cardioKey)
+      count(weightLog, result.weights, weightKey)
+
+      // Functional updates: concurrent provider syncs (e.g. the post-connect
+      // auto-sync racing a manual "Sync now") each merge into the latest
+      // state instead of overwriting each other's imports.
+      setRecoveryLog((prev) => mergeListPure(prev, result.recovery, recoveryKey))
+      setCardioLog((prev) => mergeListPure(prev, result.cardio, cardioKey))
+      setWeightLog((prev) => mergeListPure(prev, result.weights, weightKey))
+
+      return { added, updated }
+    },
+    [recoveryLog, cardioLog, weightLog, setRecoveryLog, setCardioLog, setWeightLog]
+  )
+
   // ── exercises ──
   const addExercise = useCallback(
     (data: Omit<Exercise, "id" | "builtIn">) => {
@@ -313,6 +429,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      recoveryLog,
       exercises,
       routines,
       settings,
@@ -327,6 +444,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      recoveryLog,
       exercises,
       routines,
       settings,
@@ -342,6 +460,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.workoutLog) setWorkoutLog(data.workoutLog)
       if (data.cardioLog) setCardioLog(data.cardioLog)
       if (data.weightLog) setWeightLog(data.weightLog)
+      if (data.recoveryLog) setRecoveryLog(data.recoveryLog)
       if (data.exercises) setExercises(data.exercises)
       if (data.routines) setRoutines(data.routines)
       if (data.settings) setSettings({ ...defaultSettings, ...data.settings })
@@ -355,6 +474,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWorkoutLog,
       setCardioLog,
       setWeightLog,
+      setRecoveryLog,
       setExercises,
       setRoutines,
       setSettings,
@@ -369,6 +489,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWorkoutLog([])
     setCardioLog([])
     setWeightLog([])
+    setRecoveryLog([])
     setExercises(seedExercises())
     setRoutines([])
     setSettings(defaultSettings)
@@ -395,6 +516,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWorkoutLog,
     setCardioLog,
     setWeightLog,
+    setRecoveryLog,
     setExercises,
     setRoutines,
     setSettings,
@@ -430,6 +552,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      recoveryLog,
       exercises,
       routines,
       settings,
@@ -447,6 +570,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteCardio,
       addWeight,
       deleteWeight,
+      addRecovery,
+      deleteRecovery,
+      mergeIntegrationData,
       addExercise,
       deleteExercise,
       addRoutine,
@@ -469,6 +595,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      recoveryLog,
       exercises,
       routines,
       settings,
@@ -486,6 +613,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteCardio,
       addWeight,
       deleteWeight,
+      addRecovery,
+      deleteRecovery,
+      mergeIntegrationData,
       addExercise,
       deleteExercise,
       addRoutine,

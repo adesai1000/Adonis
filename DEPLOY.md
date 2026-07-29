@@ -1,70 +1,59 @@
 # Deploying Adonis (Vercel)
 
-Adonis runs entirely in the browser (localStorage). Two small serverless
-functions add the extras:
+Adonis is a Vite SPA plus a handful of Vercel Edge functions in `api/`. It ships
+in two shapes from the same codebase:
 
-- `api/deepseek.ts` – proxies the AI Coach request so your DeepSeek key stays
-  on the server (never shipped to the browser).
-- `api/sync.ts` – a tiny key/value store so the same data can be shared between
-  your phone and computer using a shared "sync code".
+- **SaaS mode** — accounts (Supabase), Pro subscriptions (Stripe), Whoop /
+  Google Fit integrations, AI coach. Each piece activates only when its env
+  vars are set.
+- **Personal mode** — zero accounts, zero billing: the original local-first
+  tracker with optional AI coach + device sync. Works with 0–3 env vars.
 
-## 1. Push the repo to GitHub
+## Quick deploy
 
-```bash
-git add -A
-git commit -m "Adonis"
-git push
-```
+1. Push the repo to GitHub.
+2. [vercel.com/new](https://vercel.com/new) → import the repo. Framework preset
+   auto-detects as **Vite** (build `npm run build`, output `dist`). Deploy.
+3. Add env vars (Project → Settings → Environment Variables) — full list with
+   comments in [.env.example](./.env.example) — then redeploy.
 
-## 2. Import the project into Vercel
+Which vars? That depends on the shape:
 
-- Go to https://vercel.com/new and import the repo.
-- Framework preset is auto-detected as **Vite** (build `npm run build`, output `dist`).
-- Click Deploy.
-
-## 3. Add the DeepSeek key (for the AI Coach)
-
-In the Vercel project → **Settings → Environment Variables**, add:
-
-| Name           | Value                         |
-| -------------- | ----------------------------- |
-| `DEEPSEEK_API` | your DeepSeek API key (`sk-…`) |
-
-## 4. Add a KV store (for device sync)
-
-In the Vercel project → **Storage → Create Database → Upstash Redis** (free tier),
-and connect it to the project. Vercel injects these automatically:
-
-- `KV_REST_API_URL`
-- `KV_REST_API_TOKEN`
-
-(`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are also accepted.)
-
-> Sync is optional. If you skip this, everything else still works — the Sync
-> buttons will just report that sync isn't configured.
-
-## 5. Redeploy
-
-Trigger a redeploy so the new env vars take effect (Deployments → ⋯ → Redeploy).
-
-## 6. Sync your devices
-
-1. Open the deployed URL on your Mac. Go to **Settings → Sync**, generate or type
-   a sync code, tap **Use code**, then **Push to cloud** (or turn on **Auto-sync**).
-2. Open the same URL on your phone, enter the **same** sync code, and tap
-   **Pull from cloud** (or turn on **Auto-sync**).
-
-With Auto-sync on, each device pulls when opened and pushes changes a moment
-after you make them (last write wins).
+- **Full SaaS** → follow **[SETUP.md](./SETUP.md)**. It is the ordered go-live
+  checklist: Supabase project + schema, Stripe product/webhook/portal, Whoop
+  app, Google Fit OAuth (deprecation warning included), the complete Vercel env
+  table, domain wiring, and a test-mode end-to-end script. Do not wing it —
+  the order matters.
+- **Purely personal** → the short section below is all you need.
 
 ## Local development
 
 ```bash
 npm install
-npm run dev
+npm run dev      # UI + AI-coach proxy + in-memory sync at :5173
+vercel dev       # real api/ functions at :3000 (full-stack testing)
 ```
 
-- The AI Coach works locally via the Vite dev proxy as long as `DEEPSEEK_API` is
-  in your local `.env` (already gitignored).
-- Sync works locally too, backed by an in-memory store in the dev server
-  (resets when you restart `npm run dev`) — enough to try the flow.
+See [SETUP.md § 8](./SETUP.md#8-local-development-5-min) for what each mode
+covers.
+
+## Run it purely personal (no accounts, no billing)
+
+Deploy with no env vars at all and Adonis works as a fully local tracker
+(localStorage, PWA, export/import). Two optional extras:
+
+1. **AI coach** — Project → Settings → Environment Variables:
+
+   | Name | Value |
+   | --- | --- |
+   | `DEEPSEEK_API` | your DeepSeek API key (`sk-…`) |
+
+2. **Device sync (sync codes)** — Project → **Storage → Create Database →
+   Upstash Redis** (free tier) and connect it. Vercel injects
+   `KV_REST_API_URL` / `KV_REST_API_TOKEN` automatically
+   (`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` also accepted).
+
+Redeploy, then on each device: **Settings → Sync** → enter the same sync code →
+push on one, pull on the other (or turn on Auto-sync; last write wins). If you
+skip the KV store, the sync buttons just report that sync isn't configured —
+everything else keeps working.

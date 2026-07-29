@@ -1,4 +1,4 @@
-import { format, subDays } from "date-fns"
+import { format, parseISO, subDays } from "date-fns"
 import {
   cardioDistance,
   convertWeight,
@@ -11,6 +11,7 @@ import type {
   CardioEntry,
   CardKey,
   FoodEntry,
+  RecoveryEntry,
   Settings,
   WeightEntry,
   WorkoutSession,
@@ -30,6 +31,7 @@ export interface CardMetric {
 }
 
 export const CARD_TITLES: Record<CardKey, string> = {
+  recovery: "Recovery",
   volume: "Weight Lifted",
   reps: "Reps / Set",
   calories: "Calories",
@@ -154,6 +156,7 @@ export function computeCardMetric(
     cardioLog: CardioEntry[]
     weightLog: WeightEntry[]
     foodLog: FoodEntry[]
+    recoveryLog: RecoveryEntry[]
     settings: Settings
   }
 ): CardMetric {
@@ -163,6 +166,28 @@ export function computeCardMetric(
   const wUnit = settings.weightUnit
 
   switch (key) {
+    case "recovery": {
+      const scored = data.recoveryLog
+        .filter((e) => e.recoveryScore != null)
+        .sort((a, b) => a.date.localeCompare(b.date))
+      const latest = scored[scored.length - 1]
+      const prevDay = latest
+        ? format(subDays(parseISO(latest.date), 1), "yyyy-MM-dd")
+        : ""
+      const prev = scored.filter((e) => e.date === prevDay).pop()
+      const value = latest?.recoveryScore ?? 0
+      const delta = value - (prev?.recoveryScore ?? 0)
+      const direction: CardMetric["direction"] =
+        Math.abs(delta) < 1e-9 ? "flat" : delta > 0 ? "up" : "down"
+      return {
+        display: latest ? `${Math.round(value)}%` : "-",
+        trendText: `${signed(delta, 0)}%`,
+        direction,
+        tone: higherIsBetterTone(direction),
+        hasData: latest != null,
+        hasPrev: prev != null,
+      }
+    }
     case "volume":
       return build(
         volumeDay(data.workoutLog, today, wUnit),

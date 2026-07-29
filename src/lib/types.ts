@@ -5,6 +5,8 @@ export type Theme = "light" | "dark" | "system"
 export type WeightUnit = "kg" | "lbs"
 export type DistanceUnit = "km" | "miles"
 
+export type DataSource = "manual" | "whoop" | "googlefit"
+
 // ───────────────────────────── User ─────────────────────────────
 export interface UserProfile {
   theme: Theme
@@ -82,6 +84,8 @@ export interface WorkoutSession {
   routineName?: string
   exercises: LoggedExercise[]
   durationSec: number
+  source?: DataSource
+  externalId?: string
 }
 
 // In-progress, crash-recoverable session
@@ -120,6 +124,8 @@ export interface CardioEntry {
   avgHeartRate?: number
   caloriesBurned?: number
   notes?: string
+  source?: DataSource
+  externalId?: string
 }
 
 // ───────────────────────────── Body weight ─────────────────────────────
@@ -129,6 +135,32 @@ export interface WeightEntry {
   weight: number // in `unit`
   unit: WeightUnit
   notes?: string
+  source?: DataSource
+  externalId?: string
+}
+
+// ───────────────────────────── Recovery / integrations ─────────────────────────────
+// Daily recovery/readiness metrics, one entry per (source, date).
+export interface RecoveryEntry {
+  id: ID
+  date: string // yyyy-MM-dd
+  source: DataSource
+  recoveryScore?: number // 0–100 (Whoop)
+  hrvMs?: number // HRV RMSSD in ms
+  restingHeartRate?: number
+  sleepPerformance?: number // 0–100
+  sleepDurationSec?: number
+  dayStrain?: number // Whoop 0–21
+  steps?: number // Google Fit daily steps
+  caloriesOut?: number // active energy burned
+}
+
+export interface IntegrationSyncResult {
+  provider: "whoop" | "googlefit"
+  recovery: RecoveryEntry[] // ids generated server-side as `${provider}-${date}`
+  cardio: CardioEntry[] // ids `${provider}-${externalId}`; source+externalId set
+  weights: WeightEntry[] // ids `${provider}-${externalId}`
+  lastSyncedAt: string // ISO
 }
 
 // ───────────────────────────── Routines ─────────────────────────────
@@ -162,6 +194,7 @@ export interface Settings {
 
 // ───────────────────────────── Dashboard UI prefs ─────────────────────────────
 export type CardKey =
+  | "recovery"
   | "volume"
   | "reps"
   | "calories"
@@ -188,6 +221,7 @@ export interface BackupData {
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
+  recoveryLog?: RecoveryEntry[]
   exercises: Exercise[]
   routines: Routine[]
   settings: Settings
