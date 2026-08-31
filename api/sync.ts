@@ -1,35 +1,19 @@
-// Vercel Edge Function — tiny key/value sync backed by Upstash Redis (Vercel KV).
+// Vercel Edge Function — tiny key/value sync backed by Upstash Redis.
 // The whole app state is stored as one JSON blob under a user-chosen "sync code".
 // Anyone with the code can read/write that blob — simple, low-security sync
 // between your own devices.
 //
-// Needs these env vars (set automatically when you add Vercel KV / Upstash):
-//   KV_REST_API_URL      (or UPSTASH_REDIS_REST_URL)
-//   KV_REST_API_TOKEN    (or UPSTASH_REDIS_REST_TOKEN)
+// Credentials come from the Vercel ⇄ Upstash integration (KV_REST_API_URL /
+// KV_REST_API_TOKEN by default; see api/_lib/redis.ts for the accepted names).
+// Payloads above Vercel's 4.5 MB function limit are rejected with 413 before
+// this code runs; the client turns that into a readable message.
+import { json, redisCommand, redisCreds, RedisError } from "./_lib/redis"
+
 export const config = { runtime: "edge" }
 
-function creds() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
-  const token =
-    process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
-  return { url, token }
-}
-
-async function redis(command: unknown[]): Promise<unknown> {
-  const { url, token } = creds()
-  const res = await fetch(url as string, {
-    method: "POST",
-    headers: { authorization: `Bearer ${token}` },
-    body: JSON.stringify(command),
-  })
-  if (!res.ok) throw new Error(`storage error ${res.status}`)
-  const data = (await res.json()) as { result?: unknown }
-  return data.result
-}
-
 export default async function handler(req: Request): Promise<Response> {
-  const { url, token } = creds()
-  if (!url || !token) {
+  const creds = redisCreds()
+  if (!creds) {
     return json({ error: "Sync storage is not configured on the server." }, 503)
   }
 
@@ -42,24 +26,43 @@ export default async function handler(req: Request): Promise<Response> {
 
   try {
     if (req.method === "GET") {
-      const value = await redis(["GET", key])
-      const data = typeof value === "string" ? JSON.parse(value) : null
+      const value = await redisCommand(creds, ["GET", key])
+      if (value === null || value === undefined) return json({ data: null })
+      if (typeof value !== "string") {
+        return json({ error: "Stored sync data has an unexpected type." }, 502)
+      }
+      let data: unknown
+      try {
+        data = JSON.parse(value)
+      } catch {
+        // Never report a corrupt blob as "nothing stored": auto-sync would
+        // overwrite it. Surface it so the user can push deliberately instead.
+        return json(
+          {
+            error:
+              "The data stored under this sync code is not readable. Tap Push to cloud on the device with the freshest data to replace it.",
+          },
+          502
+        )
+      }
       return json({ data })
     }
+
     if (req.method === "POST" || req.method === "PUT") {
       const body = await req.text()
-      await redis(["SET", key, body])
+      if (!body) return json({ error: "Empty sync payload." }, 400)
+      try {
+        JSON.parse(body)
+      } catch {
+        return json({ error: "Sync payload must be JSON." }, 400)
+      }
+      await redisCommand(creds, ["SET", key, body])
       return json({ ok: true })
     }
+
     return json({ error: "Method not allowed" }, 405)
   } catch (e) {
+    if (e instanceof RedisError) return json({ error: e.message }, e.status)
     return json({ error: e instanceof Error ? e.message : "sync failed" }, 500)
   }
-}
-
-function json(obj: unknown, status = 200): Response {
-  return new Response(JSON.stringify(obj), {
-    status,
-    headers: { "content-type": "application/json" },
-  })
 }

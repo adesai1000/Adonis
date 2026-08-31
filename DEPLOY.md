@@ -7,6 +7,8 @@ functions add the extras:
   on the server (never shipped to the browser).
 - `api/sync.ts` – a tiny key/value store so the same data can be shared between
   your phone and computer using a shared "sync code".
+- `api/keepalive.ts` – pinged once a day by a Vercel Cron Job (`vercel.json`) so
+  the free Upstash database never goes idle long enough to be archived.
 
 ## 1. Push the repo to GitHub
 
@@ -32,16 +34,35 @@ In the Vercel project → **Settings → Environment Variables**, add:
 
 ## 4. Add a KV store (for device sync)
 
-In the Vercel project → **Storage → Create Database → Upstash Redis** (free tier),
-and connect it to the project. Vercel injects these automatically:
+In the Vercel project → **Storage → Create Database → Upstash for Redis** (free
+tier), and connect it to the project with the default `KV` prefix. Vercel
+injects these automatically:
 
 - `KV_REST_API_URL`
 - `KV_REST_API_TOKEN`
 
-(`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are also accepted.)
+(`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`, `REDIS_REST_API_*` and
+`STORAGE_REST_API_*` are also accepted — see `api/_lib/redis.ts`.)
 
 > Sync is optional. If you skip this, everything else still works — the Sync
 > buttons will just report that sync isn't configured.
+
+### If sync suddenly stops working ("Could not reach sync storage…")
+
+Upstash **archives free databases after ~30 days without a single command** and
+Vercel then shows the store as *"Archived due to inactivity"*. The daily cron in
+`vercel.json` prevents that as long as the project stays deployed. If it does
+happen anyway:
+
+1. Vercel project → **Storage → Create Database → Upstash for Redis** (new DB).
+2. Open the *old* archived store → **Projects** → ⋯ → **Disconnect** (removes the
+   stale `KV_*` variables), then **Connect Database** the new one with prefix `KV`.
+3. Redeploy (Deployments → ⋯ → Redeploy). Open the app on the device with the
+   freshest data first and tap **Push to cloud** — that becomes the new cloud copy.
+
+The archived data is kept as a backup in the Upstash console (*inactive
+databases → Restore*), but it is at least a month old, so only restore it if no
+device has a newer copy.
 
 ## 5. Redeploy
 
@@ -68,3 +89,4 @@ npm run dev
   in your local `.env` (already gitignored).
 - Sync works locally too, backed by an in-memory store in the dev server
   (resets when you restart `npm run dev`) — enough to try the flow.
+- The cron keep-alive only runs on Vercel; nothing to do locally.
