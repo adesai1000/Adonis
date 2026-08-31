@@ -22,7 +22,6 @@ import {
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
 import { FieldError } from "@/components/common/bits"
-import { convertWeight } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
 import type {
@@ -267,22 +266,8 @@ export function GoalsSection() {
               variant="outline"
               value={settings.weightUnit}
               onValueChange={(v) => {
-                if (v && v !== settings.weightUnit) {
-                  const unit = v as WeightUnit
-                  const patch: Partial<Settings> = { weightUnit: unit }
-                  // Convert the stored goal along with the unit — otherwise
-                  // a 180 (lbs) goal silently becomes a 180 kg goal.
-                  if (settings.goalWeight > 0) {
-                    patch.goalWeight =
-                      Math.round(
-                        convertWeight(
-                          settings.goalWeight,
-                          settings.weightUnit,
-                          unit
-                        ) * 10
-                      ) / 10
-                  }
-                  updateSettings(patch)
+                if (v) {
+                  updateSettings({ weightUnit: v as WeightUnit })
                   toast.success("Weight unit saved")
                 }
               }}

@@ -17,7 +17,6 @@ import { useStore } from "@/store/store"
 import type { CardKey, GraphTab, TrendRange } from "@/lib/types"
 
 const CARD_LABELS: Record<CardKey, string> = {
-  recovery: "Recovery",
   volume: "Volume",
   reps: "Reps",
   calories: "Calories",

@@ -6,7 +6,6 @@ import {
   Droplet,
   Dumbbell,
   Flame,
-  HeartPulse,
   LineChart as LineChartIcon,
   Repeat,
   Scale,
@@ -47,11 +46,9 @@ import {
   GRAPH_TITLES,
 } from "./home/graph-data"
 import { ManageCards } from "./home/manage-cards"
-import { RecoveryCard } from "./home/recovery-card"
 import { AICoach } from "./home/ai-coach"
 
 const CARD_ICONS: Record<CardKey, React.ReactNode> = {
-  recovery: <HeartPulse className="size-4" />,
   volume: <Dumbbell className="size-4" />,
   reps: <Repeat className="size-4" />,
   calories: <Flame className="size-4" />,
@@ -81,7 +78,6 @@ export default function Page() {
     cardioLog,
     weightLog,
     foodLog,
-    recoveryLog,
     settings,
     uiPrefs,
     updateUiPrefs,
@@ -89,8 +85,8 @@ export default function Page() {
 
   // ── trend card metrics ──
   const metricData = useMemo(
-    () => ({ workoutLog, cardioLog, weightLog, foodLog, recoveryLog, settings }),
-    [workoutLog, cardioLog, weightLog, foodLog, recoveryLog, settings]
+    () => ({ workoutLog, cardioLog, weightLog, foodLog, settings }),
+    [workoutLog, cardioLog, weightLog, foodLog, settings]
   )
 
   const visibleCards = uiPrefs.cardOrder.filter(
@@ -167,15 +163,6 @@ export default function Page() {
         ) : (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4">
             {visibleCards.map((key) => {
-              if (key === "recovery") {
-                return (
-                  <RecoveryCard
-                    key={key}
-                    entries={recoveryLog}
-                    onHide={() => hideCard(key)}
-                  />
-                )
-              }
               const m = computeCardMetric(key, metricData)
               const trend = !m.hasData ? (
                 <span className="text-xs text-muted-foreground">

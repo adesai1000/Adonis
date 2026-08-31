@@ -7,7 +7,6 @@ export const STORAGE_KEYS = {
   workoutLog: "wt_workout_log",
   cardioLog: "wt_cardio_log",
   weightLog: "wt_weight_log",
-  recoveryLog: "wt_recovery_log",
   exercises: "wt_exercises",
   routines: "wt_routines",
   settings: "wt_settings",
@@ -20,14 +19,6 @@ export const STORAGE_KEYS = {
   syncAuto: "wt_sync_auto",
   syncLast: "wt_sync_last",
   syncEvents: "wt_sync_events",
-  // userId whose account this device's data last synced with — guards
-  // against uploading one user's data into another user's account.
-  syncOwner: "wt_sync_owner",
-  // Set while local edits have not reached the cloud yet (debounce window or
-  // failed pushes) — a pull must flush these first instead of overwriting.
-  syncDirty: "wt_sync_dirty",
-  welcomeDone: "wt_welcome_done",
-  onboardingDone: "wt_onboarding_done",
 } as const
 
 /** All app-owned keys (used for storage-size estimate + clear). */

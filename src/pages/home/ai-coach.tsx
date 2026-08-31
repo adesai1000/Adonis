@@ -20,10 +20,7 @@ import {
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
-import { UpgradeDialog } from "@/components/account/upgrade-dialog"
 import { useStore } from "@/store/store"
-import { useAuth } from "@/store/auth"
-import { isAuthConfigured, supabase } from "@/lib/supabase"
 import { STORAGE_KEYS, usePersistentState } from "@/lib/storage"
 import {
   buildWeeklyStats,
@@ -33,48 +30,25 @@ import {
 } from "@/lib/ai"
 
 export function AICoach() {
-  const { workoutLog, foodLog, cardioLog, weightLog, recoveryLog, settings } =
-    useStore()
-  const { isPro, profileUnknown, session } = useAuth()
+  const { workoutLog, foodLog, cardioLog, weightLog, settings } = useStore()
   const [summary, setSummary] = usePersistentState<CoachSummary | null>(
     STORAGE_KEYS.aiSummary,
     null
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [upgradeOpen, setUpgradeOpen] = useState(false)
 
   const stats = useMemo(
-    () =>
-      buildWeeklyStats({
-        workoutLog,
-        foodLog,
-        cardioLog,
-        weightLog,
-        recoveryLog,
-        settings,
-      }),
-    [workoutLog, foodLog, cardioLog, weightLog, recoveryLog, settings]
+    () => buildWeeklyStats({ workoutLog, foodLog, cardioLog, weightLog, settings }),
+    [workoutLog, foodLog, cardioLog, weightLog, settings]
   )
   const canGenerate = hasWeekData(stats)
-  // Only gate when the profile is confirmed non-Pro: if the profile fetch
-  // failed (profileUnknown), show Generate — the server still enforces
-  // pro_required, and a paying user must not be locked out by a flaky fetch.
-  const gated = isAuthConfigured && !isPro && !profileUnknown
 
   async function run() {
     setLoading(true)
     setError(null)
     try {
-      // Fetch a fresh token at call time — the context session can hold an
-      // expired access token right after wake-from-sleep; getSession()
-      // transparently refreshes it.
-      let token = session?.access_token
-      if (supabase) {
-        const { data } = await supabase.auth.getSession()
-        token = data.session?.access_token ?? token
-      }
-      const result = await generateCoachSummary(stats, token)
+      const result = await generateCoachSummary(stats)
       setSummary(result)
       toast.success("Coach summary ready")
     } catch (e) {
@@ -86,64 +60,49 @@ export function AICoach() {
   }
 
   return (
-    <>
-      <Card>
-        <CardHeader>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="space-y-1">
-              <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-                <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-                  <Sparkles className="size-4" />
-                </span>
-                AI Coach
-              </CardTitle>
-              <CardDescription>
-                {gated
-                  ? "AI coaching is a Pro feature — upgrade to get a weekly read on your training."
-                  : "A coach's read on your last 7 days of training and nutrition."}
-              </CardDescription>
-            </div>
-            {gated ? (
-              <Button
-                onClick={() => setUpgradeOpen(true)}
-                className="gap-2 self-start sm:self-auto"
-              >
+    <Card>
+      <CardHeader>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="flex items-center gap-2 text-base md:text-lg">
+              <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
                 <Sparkles className="size-4" />
-                Upgrade to Pro
-              </Button>
-            ) : (
-              <Button
-                onClick={run}
-                disabled={loading || !canGenerate}
-                className="gap-2 self-start sm:self-auto"
-              >
-                {loading ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : summary ? (
-                  <RefreshCw className="size-4" />
-                ) : (
-                  <Sparkles className="size-4" />
-                )}
-                {loading ? "Generating" : summary ? "Regenerate" : "Generate"}
-              </Button>
-            )}
+              </span>
+              AI Coach
+            </CardTitle>
+            <CardDescription>
+              A coach&apos;s read on your last 7 days of training and nutrition.
+            </CardDescription>
           </div>
-        </CardHeader>
+          <Button
+            onClick={run}
+            disabled={loading || !canGenerate}
+            className="gap-2 self-start sm:self-auto"
+          >
+            {loading ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : summary ? (
+              <RefreshCw className="size-4" />
+            ) : (
+              <Sparkles className="size-4" />
+            )}
+            {loading ? "Generating" : summary ? "Regenerate" : "Generate"}
+          </Button>
+        </div>
+      </CardHeader>
 
-        <CardContent>
-          {loading ? (
-            <LoadingState />
-          ) : error ? (
-            <ErrorState message={error} />
-          ) : summary ? (
-            <SummaryView summary={summary} />
-          ) : (
-            <EmptyState canGenerate={canGenerate} />
-          )}
-        </CardContent>
-      </Card>
-      <UpgradeDialog open={upgradeOpen} onOpenChange={setUpgradeOpen} />
-    </>
+      <CardContent>
+        {loading ? (
+          <LoadingState />
+        ) : error ? (
+          <ErrorState message={error} />
+        ) : summary ? (
+          <SummaryView summary={summary} />
+        ) : (
+          <EmptyState canGenerate={canGenerate} />
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
