@@ -35,7 +35,8 @@ import {
 } from "@/components/ui/table"
 import { EmptyState, FieldError } from "@/components/common/bits"
 import { useDraft } from "@/lib/storage"
-import { fmt } from "@/lib/calc"
+import { fmt, fmtCompact } from "@/lib/calc"
+import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 import type { Meal } from "@/lib/types"
 
@@ -307,25 +308,39 @@ function MealCard({
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-5 gap-2 text-center">
-        <MacroStat label="kcal" value={fmt(meal.calories)} />
-        <MacroStat label="P" value={`${fmt(meal.protein)} g`} />
-        <MacroStat label="C" value={`${fmt(meal.carbs)} g`} />
-        <MacroStat label="F" value={`${fmt(meal.fat)} g`} />
-        <MacroStat label="Na" value={`${fmt(meal.sodium ?? 0, 0)} mg`} />
+      <div className="flex flex-wrap gap-1.5 tabular-nums">
+        <MacroStat strong value={`${fmtCompact(meal.calories)} kcal`} />
+        <MacroStat label="P" value={`${fmtCompact(meal.protein)} g`} />
+        <MacroStat label="C" value={`${fmtCompact(meal.carbs)} g`} />
+        <MacroStat label="F" value={`${fmtCompact(meal.fat)} g`} />
+        <MacroStat label="Na" value={`${fmtCompact(meal.sodium ?? 0)} mg`} />
       </div>
     </Card>
   )
 }
 
-function MacroStat({ label, value }: { label: string; value: string }) {
+/** Macro pill: `P 50 g`, or a strong ink pill for the kcal total. */
+function MacroStat({
+  label,
+  value,
+  strong,
+}: {
+  label?: string
+  value: string
+  strong?: boolean
+}) {
   return (
-    <div className="rounded-xl bg-muted py-2">
-      <div className="text-[13px] font-semibold tabular-nums">{value}</div>
-      <div className="text-[10px] font-semibold tracking-[0.09em] text-ink-3 uppercase">
-        {label}
-      </div>
-    </div>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs whitespace-nowrap",
+        strong ? "bg-foreground font-semibold text-background" : "bg-muted"
+      )}
+    >
+      {label && <span className="font-semibold text-ink-3">{label}</span>}
+      <span className={strong ? undefined : "font-semibold text-foreground"}>
+        {value}
+      </span>
+    </span>
   )
 }
 

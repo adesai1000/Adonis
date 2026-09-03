@@ -106,9 +106,9 @@
 }
 
 .dark {
-  /* warm dark grey, not AMOLED black: surfaces stay readable as layers */
-  --ground: #101312;
-  --canvas: #161a18;
+  /* AMOLED black canvas; cards lift off it as the only lighter layer */
+  --ground: #000000;
+  --canvas: #000000;
   --ink: #f2f4ef;
   --ink-2: #b7bdb3;
   --ink-3: #8d948a;
@@ -123,17 +123,17 @@
 
   --background: var(--canvas);
   --foreground: var(--ink);
-  --card: #1e2320;
+  --card: #111412;
   --card-foreground: var(--ink);
-  --popover: #232927;
+  --popover: #161a17;
   --popover-foreground: var(--ink);
 
   --primary: var(--green);
   --primary-foreground: #101310;
 
-  --secondary: #272d29;
+  --secondary: #1c211d;
   --secondary-foreground: var(--ink-2);
-  --muted: #272d29;
+  --muted: #1c211d;
   --muted-foreground: var(--ink-3);
   --accent: var(--green-tint);
   --accent-foreground: var(--green-ink);
@@ -317,13 +317,17 @@
       0 14px 40px -16px rgba(16, 19, 16, 0.22);
     transition: border-color 0.35s, box-shadow 0.35s;
   }
-  .topbar-glass:hover {
-    border-color: rgba(29, 185, 84, 0.6);
-    box-shadow:
-      inset 0 1px 0 var(--topbar-edge),
-      inset 0 0 0 1px rgba(29, 185, 84, 0.18),
-      0 0 0 1px rgba(29, 185, 84, 0.35),
-      0 16px 46px -14px rgba(29, 185, 84, 0.42);
+  /* the ice lights up green on hover — pointer devices only, so a tap on
+     mobile doesn't leave the rim stuck green */
+  @media (hover: hover) and (pointer: fine) {
+    .topbar-glass:hover {
+      border-color: rgba(29, 185, 84, 0.6);
+      box-shadow:
+        inset 0 1px 0 var(--topbar-edge),
+        inset 0 0 0 1px rgba(29, 185, 84, 0.18),
+        0 0 0 1px rgba(29, 185, 84, 0.35),
+        0 16px 46px -14px rgba(29, 185, 84, 0.42);
+    }
   }
   /* icy glint sweeping the panel edge */
   .glint::after {

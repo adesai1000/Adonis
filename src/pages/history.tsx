@@ -39,11 +39,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EmptyState } from "@/components/common/bits"
+import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 import {
   cardioDistance,
   dateKey,
   fmt,
+  fmtCompact,
   fmtNum,
   formatDuration,
   formatPace,
@@ -153,6 +155,31 @@ function SectionCard({
   )
 }
 
+/** Tiny macro pill: `P 8 g`, or a strong one for the kcal total. */
+function MacroChip({
+  label,
+  strong,
+  children,
+}: {
+  label?: string
+  strong?: boolean
+  children: ReactNode
+}) {
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-4 whitespace-nowrap",
+        strong ? "bg-foreground font-semibold text-background" : "bg-muted text-ink-2"
+      )}
+    >
+      {label && <span className="font-semibold text-ink-3">{label}</span>}
+      <span className={strong ? undefined : "font-medium text-foreground"}>
+        {children}
+      </span>
+    </span>
+  )
+}
+
 function NothingLogged({ what }: { what: string }) {
   const text = what.charAt(0).toUpperCase() + what.slice(1)
   return (
@@ -196,16 +223,15 @@ function FoodSection({
                   <p className="text-xs text-muted-foreground">
                     {e.serving} × {fmtNum(e.quantity)}
                   </p>
-                  <p className="mt-0.5 text-xs tabular-nums">
-                    <span className="font-medium text-foreground">
-                      {fmtNum(e.calories)} kcal
-                    </span>
-                    <span className="text-muted-foreground">
-                      {" "}
-                      · P {fmt(e.protein)} g · C {fmt(e.carbs)} g · F{" "}
-                      {fmt(e.fat)} g · Na {fmt(e.sodium ?? 0, 0)} mg
-                    </span>
-                  </p>
+                  <div className="mt-1.5 flex flex-wrap gap-1 tabular-nums">
+                    <MacroChip strong>
+                      {fmtCompact(e.calories)} kcal
+                    </MacroChip>
+                    <MacroChip label="P">{fmtCompact(e.protein)} g</MacroChip>
+                    <MacroChip label="C">{fmtCompact(e.carbs)} g</MacroChip>
+                    <MacroChip label="F">{fmtCompact(e.fat)} g</MacroChip>
+                    <MacroChip label="Na">{fmtCompact(e.sodium ?? 0)} mg</MacroChip>
+                  </div>
                   {e.notes && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       {e.notes}
@@ -221,27 +247,19 @@ function FoodSection({
             ))}
           </ul>
           <Separator />
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-sm tabular-nums sm:grid-cols-5">
-            <div>
-              <p className="text-xs text-muted-foreground">Calories</p>
-              <p className="font-semibold">{fmtNum(totals.calories)} kcal</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Protein</p>
-              <p className="font-semibold">{fmt(totals.protein)} g</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Carbs</p>
-              <p className="font-semibold">{fmt(totals.carbs)} g</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Fat</p>
-              <p className="font-semibold">{fmt(totals.fat)} g</p>
-            </div>
-            <div>
-              <p className="text-xs text-muted-foreground">Sodium</p>
-              <p className="font-semibold">{fmt(totals.sodium, 0)} mg</p>
-            </div>
+          <div className="grid grid-cols-3 gap-2 tabular-nums sm:grid-cols-5">
+            {[
+              ["Calories", `${fmtCompact(totals.calories)} kcal`],
+              ["Protein", `${fmtCompact(totals.protein)} g`],
+              ["Carbs", `${fmtCompact(totals.carbs)} g`],
+              ["Fat", `${fmtCompact(totals.fat)} g`],
+              ["Sodium", `${fmtCompact(totals.sodium)} mg`],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-xl bg-muted px-3 py-2">
+                <p className="microlabel !text-[10px]">{label}</p>
+                <p className="mt-0.5 text-[13px] font-semibold">{value}</p>
+              </div>
+            ))}
           </div>
         </div>
       )}

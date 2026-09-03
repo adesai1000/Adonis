@@ -25,9 +25,26 @@ export const NAV_ITEMS: NavItem[] = [
   { key: "settings", label: "Settings", icon: Settings },
 ]
 
+function scrollToTop() {
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" })
+}
+
+/** Switch sections; re-tapping the current one scrolls back to the top. */
+function useNavigate() {
+  const { section, setSection } = useNav()
+  return {
+    section,
+    go(key: Section) {
+      if (key === section) scrollToTop()
+      else setSection(key)
+    },
+  }
+}
+
 /** Desktop: the Stickshift `.nav` pill rail that lives inside the topbar. */
 export function TopNav() {
-  const { section, setSection } = useNav()
+  const { section, go } = useNavigate()
   return (
     <nav
       aria-label="Primary"
@@ -39,7 +56,7 @@ export function TopNav() {
           <button
             key={item.key}
             type="button"
-            onClick={() => setSection(item.key)}
+            onClick={() => go(item.key)}
             aria-current={active ? "page" : undefined}
             className={cn(
               "rounded-full px-4 py-2 text-[13.5px] font-medium whitespace-nowrap transition-[color,background-color] duration-200",
@@ -56,22 +73,30 @@ export function TopNav() {
   )
 }
 
-/** Mobile: a floating frosted dock. */
+/** Mobile: a floating frosted dock. The green rim only lights while a tab is pressed. */
 export function BottomNav() {
-  const { section, setSection } = useNav()
+  const { section, go } = useNavigate()
   return (
     <nav
       aria-label="Primary"
       className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-40 md:hidden"
     >
-      <div className="topbar-glass mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1">
+      <div
+        className={cn(
+          "topbar-glass mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1 transition-[border-color,box-shadow] duration-200",
+          // neutral rim at rest…
+          "[box-shadow:inset_0_1px_0_var(--topbar-edge),0_14px_40px_-16px_rgba(16,19,16,0.22)]",
+          // …green only while a tab is being pressed
+          "has-[button:active]:border-green/60 has-[button:active]:[box-shadow:inset_0_1px_0_var(--topbar-edge),inset_0_0_0_1px_rgba(29,185,84,0.18),0_0_0_1px_rgba(29,185,84,0.35),0_16px_46px_-14px_rgba(29,185,84,0.42)]"
+        )}
+      >
         {NAV_ITEMS.map((item) => {
           const active = section === item.key
           const Icon = item.icon
           return (
             <button
               key={item.key}
-              onClick={() => setSection(item.key)}
+              onClick={() => go(item.key)}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
               className="group flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 px-0.5"

@@ -41,6 +41,12 @@ export function fmtNum(n: number | null | undefined): string {
   return fmt(n, 1)
 }
 
+/** Whole numbers without a trailing ".0"; otherwise 1 decimal (e.g. 625, 4.5). */
+export function fmtCompact(n: number | null | undefined): string {
+  const v = typeof n === "number" && isFinite(n) ? n : 0
+  return Number.isInteger(Math.round(v * 10) / 10) ? fmt(v, 0) : fmt(v, 1)
+}
+
 export function signed(n: number, decimals = 1): string {
   const v = isFinite(n) ? n : 0
   return `${v > 0 ? "+" : ""}${fmt(v, decimals)}`

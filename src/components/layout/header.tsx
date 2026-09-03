@@ -54,7 +54,16 @@ export function Header() {
       <header className="topbar-glass glint relative mx-auto mt-2 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-3 md:px-4 md:py-2.5">
         <button
           type="button"
-          onClick={() => setSection("home")}
+          onClick={() => {
+            if (section === "home") {
+              const reduce = window.matchMedia(
+                "(prefers-reduced-motion: reduce)"
+              ).matches
+              window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" })
+            } else {
+              setSection("home")
+            }
+          }}
           aria-label="Adonis home"
           className="flex shrink-0 items-center gap-2.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
