@@ -29,6 +29,7 @@ import type {
   Exercise,
   FoodEntry,
   GraphTab,
+  HomeSection,
   Meal,
   Routine,
   Settings,
@@ -40,8 +41,9 @@ import type {
 
 const ALL_CARD_KEYS = defaultUiPrefs.cardOrder as CardKey[]
 const ALL_GRAPH_TABS = defaultUiPrefs.graphTabOrder as GraphTab[]
+const ALL_HOME_SECTIONS = defaultUiPrefs.homeSectionOrder as HomeSection[]
 
-/** Ensure stored prefs include every card/graph key (forward-compatible migration). */
+/** Ensure stored prefs include every card/graph/section key (forward-compatible migration). */
 function normalizeUiPrefs(p: UiPrefs): UiPrefs {
   const cardOrder = [
     ...p.cardOrder.filter((k) => ALL_CARD_KEYS.includes(k)),
@@ -60,7 +62,23 @@ function normalizeUiPrefs(p: UiPrefs): UiPrefs {
     if (p.graphTabVisibility[t] !== undefined)
       graphTabVisibility[t] = p.graphTabVisibility[t]
   }
-  return { cardOrder, cardVisibility, graphTabOrder, graphTabVisibility }
+  const existingHomeOrder = p.homeSectionOrder ?? []
+  const homeSectionOrder = [
+    ...existingHomeOrder.filter((k) => ALL_HOME_SECTIONS.includes(k)),
+    ...ALL_HOME_SECTIONS.filter((k) => !existingHomeOrder.includes(k)),
+  ]
+  return {
+    cardOrder,
+    cardVisibility,
+    graphTabOrder,
+    graphTabVisibility,
+    homeSectionOrder,
+  }
+}
+
+/** Backfill any settings fields added after a user's data was first created. */
+function normalizeSettings(s: Settings): Settings {
+  return { ...defaultSettings, ...s }
 }
 
 export interface Store {
@@ -416,9 +434,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSettings((s) => ({ ...s, weightUnit: "lbs", distanceUnit: "miles" }))
   }, [setFoodLog, setWorkoutLog, setCardioLog, setWeightLog, setRoutines, setSettings])
 
-  // One-time migration: make sure prefs include any newly-added card/graph keys.
+  // One-time migration: make sure prefs/settings include any newly-added keys.
   useEffect(() => {
     setUiPrefs((p) => normalizeUiPrefs(p))
+    setSettings((s) => normalizeSettings(s))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

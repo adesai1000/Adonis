@@ -307,19 +307,12 @@ function MealCard({
           </Button>
         </div>
       </div>
-      <div className="grid grid-cols-4 gap-2 text-center">
+      <div className="grid grid-cols-5 gap-2 text-center">
         <MacroStat label="kcal" value={fmt(meal.calories)} />
         <MacroStat label="P" value={`${fmt(meal.protein)} g`} />
         <MacroStat label="C" value={`${fmt(meal.carbs)} g`} />
         <MacroStat label="F" value={`${fmt(meal.fat)} g`} />
-      </div>
-      <div className="flex items-center justify-center gap-1.5 text-xs">
-        <span className="tracking-wide text-muted-foreground uppercase">
-          Sodium
-        </span>
-        <span className="font-semibold tabular-nums">
-          {fmt(meal.sodium ?? 0, 0)} mg
-        </span>
+        <MacroStat label="Na" value={`${fmt(meal.sodium ?? 0, 0)} mg`} />
       </div>
     </Card>
   )

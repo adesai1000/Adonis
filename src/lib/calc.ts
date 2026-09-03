@@ -68,6 +68,23 @@ export function convertDistance(
   return from === "km" ? value / KM_PER_MILE : value * KM_PER_MILE
 }
 
+/**
+ * Fraction (0-1) of the way from a starting body weight to a goal weight,
+ * given the current weight. Works regardless of whether the goal is a loss
+ * or a gain. Returns null when there's no meaningful direction to measure
+ * (no goal set, or the goal equals the starting weight).
+ */
+export function goalProgressFraction(
+  start: number,
+  current: number,
+  goal: number
+): number | null {
+  if (!isFinite(start) || !isFinite(current) || !isFinite(goal)) return null
+  if (goal <= 0 || start === goal) return null
+  const raw = (current - start) / (goal - start)
+  return Math.min(1, Math.max(0, raw))
+}
+
 // ───────────────────────────── workout math ─────────────────────────────
 /** Volume of one logged exercise, in the requested unit. */
 export function exerciseVolume(ex: LoggedExercise, unit: WeightUnit): number {

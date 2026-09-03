@@ -82,6 +82,7 @@ export function Combobox({
         align="start"
         side="bottom"
         avoidCollisions={false}
+        onOpenAutoFocus={(e) => e.preventDefault()}
       >
         <Command
           filter={(value, search, keywords) => {

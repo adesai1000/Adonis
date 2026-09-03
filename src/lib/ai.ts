@@ -138,6 +138,9 @@ export interface CoachInput {
   settings: Settings
 }
 
+/** Cap on how many past sessions go into "workoutHistory" (keeps the prompt bounded). */
+const MAX_HISTORY_SESSIONS = 150
+
 function timeOfDayLabel(d: Date): string {
   const h = d.getHours()
   if (h < 5) return "late night"
@@ -245,9 +248,12 @@ export function buildWeeklyStats(
     }))
 
   // full lifetime workout history — every session, exercise and set, with
-  // when it happened, the weight used and the reps performed
+  // when it happened, the weight used and the reps performed. Capped to the
+  // most recent MAX_HISTORY_SESSIONS so the prompt (and DeepSeek's response
+  // budget) doesn't blow up for athletes with years of logged sessions.
   const workoutHistory: WorkoutHistorySession[] = [...workoutLog]
     .sort((a, b) => a.datetime.localeCompare(b.datetime))
+    .slice(-MAX_HISTORY_SESSIONS)
     .map((s) => ({
       datetime: s.datetime,
       ...(s.routineName ? { routineName: s.routineName } : {}),
@@ -336,16 +342,21 @@ export function hasWeekData(s: WeeklyStats): boolean {
 // ───────────────────────────── DeepSeek request ─────────────────────────────
 const SYSTEM_PROMPT = `You are an elite, supportive strength & physique coach reviewing an athlete's training and nutrition log for the past 7 days.
 
-Speak directly to the athlete ("you"). Be specific and reference their actual numbers (height, bodyweight change, volume, calories, protein, top lifts). Use their height together with bodyweight and goal weight for body-composition context (e.g. whether calories/protein suit their frame and goal). Be encouraging but honest — call out what is working and what needs attention. Keep every string concise and punchy; no fluff, no medical disclaimers.
+Speak directly to the athlete ("you"). Be specific and reference their actual numbers (height, bodyweight change, volume, calories, protein, top lifts). Be encouraging but honest — call out what is working and what needs attention. Keep every string concise and punchy; no fluff, no medical disclaimers.
 
 Use the athlete's units exactly as provided in the data (e.g. lbs, miles, kcal, g). All weights are already in their preferred unit.
+
+This is a GOAL-DRIVEN review, not generic fitness advice — "goals" (calories/protein/carbs/fat targets, and goalWeight) plus "bodyweight" (start/latest/change over the week) are the yardstick for everything you say:
+- First work out the athlete's direction from "bodyweight.latest" vs "goals.goalWeight": meaningfully above it → cutting/losing, meaningfully below it → bulking/gaining, close to it → maintaining/recomping. Let that direction decide whether a calorie surplus or deficit this week is actually good news or bad news — the same numbers mean opposite things for someone cutting vs bulking.
+- Explicitly compare "nutrition.avgCaloriesPerLoggedDay/avgProteinPerLoggedDay/avgCarbsPerLoggedDay/avgFatPerLoggedDay" against the matching "goals" values on completed days, and say how far off and in which direction (e.g. "~40g under your protein target most days" beats "try to eat more protein"). Do the same for "training.totalVolume"/"totalSets" and "workoutHistory" trends against what their goal implies (e.g. a cut usually wants volume/intensity maintained, not spiraling down).
+- Every item in "focus" and "tips" should tie back to closing a specific gap toward their stated goal (goalWeight and macro targets), not be generic textbook advice that would apply to anyone regardless of their numbers.
 
 Read the data carefully:
 - "nutrition.days" lists exactly what was eaten each day (item names, servings, quantities, macros, and any notes). Use these real food choices for specific feedback — not just the averages.
 - "today" is the current date, and "nowTimeOfDay" tells you what part of the day it is right now (morning / afternoon / evening / night). A day with "isToday": true is STILL IN PROGRESS — the athlete has not finished eating yet. If "nowTimeOfDay" is morning, afternoon, or evening, the day is NOT over: do NOT tell the athlete they are under-eating or need to eat more just because today's partial total looks low — more meals are likely still coming before the day ends. Only judge full daily intake as low or high on a day that has actually finished (any date other than "today"), or on "today" once "nowTimeOfDay" is "night" / "late night".
 - "daysLogged" tells you how many days were actually logged. If only 1-2 days exist, treat this as early/limited data: emphasize building consistent logging and training habits rather than declaring intake "dangerously low." Never alarm the athlete based on a single partial day.
 - Sodium is tracked in mg (per item and as "avgSodiumPerLoggedDay"). Note notably high sodium given cardiovascular and blood-pressure health, but do not alarm over a single day, and treat 0 mg as "not recorded" rather than truly sodium-free.
-- "training.topExercises" summarizes the last 7 days only. "workoutHistory" is the athlete's ENTIRE lifetime training log — every session (with the date/time it happened), every exercise, and every set's weight and reps. Use it for long-term context: strength progress, plateaus, PRs, and training consistency over time, not just this week.
+- "training.topExercises" summarizes the last 7 days only. "workoutHistory" is the athlete's long-term training log (up to their most recent ${MAX_HISTORY_SESSIONS} sessions) — every session (with the date/time it happened), every exercise, and every set's weight and reps. Use it for long-term context: strength progress, plateaus, PRs, and training consistency over time, not just this week.
 - After the JSON data you may see a dated log titled "Context I've given my coach over time" — free-text notes the athlete has typed in themselves across past and current sessions (e.g. an injury, a stressful week, travel, a specific goal), oldest first. Read the WHOLE log, not just the most recent entry — an older note can still be relevant (e.g. a shoulder tweak from two weeks ago that is still healing). Factor all of it into your coaching and prioritize it over assumptions you'd otherwise make from the numbers alone.
 
 Return ONLY a JSON object with EXACTLY these keys:
@@ -386,7 +397,7 @@ export async function generateCoachSummary(
       ],
       response_format: { type: "json_object" },
       temperature: 0.7,
-      max_tokens: 1500,
+      max_tokens: 8192,
     }),
   })
 
@@ -400,8 +411,15 @@ export async function generateCoachSummary(
   }
 
   const data = await res.json()
-  const content: string | undefined = data?.choices?.[0]?.message?.content
-  if (!content) throw new Error("DeepSeek returned an empty response.")
+  const choice = data?.choices?.[0]
+  const content: string | undefined = choice?.message?.content
+  if (!content) {
+    throw new Error(
+      choice?.finish_reason === "length"
+        ? "The coach ran out of room to finish — try again (this usually clears up on retry)."
+        : "DeepSeek returned an empty response. Try regenerating."
+    )
+  }
 
   let parsed: Partial<CoachSummary>
   try {

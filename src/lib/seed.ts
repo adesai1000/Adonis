@@ -226,6 +226,7 @@ export const defaultSettings: Settings = {
   weightUnit: "lbs",
   distanceUnit: "miles",
   trendRange: 7,
+  trackingStartDate: "",
 }
 
 export const defaultUiPrefs: UiPrefs = {
@@ -253,4 +254,5 @@ export const defaultUiPrefs: UiPrefs = {
   },
   graphTabOrder: ["bodyweight", "calories", "protein"],
   graphTabVisibility: { bodyweight: true, calories: true, protein: true },
+  homeSectionOrder: ["cards", "graph", "tracker", "aicoach"],
 }

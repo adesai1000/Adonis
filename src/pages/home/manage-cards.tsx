@@ -35,7 +35,11 @@ export function ManageCards({ order, visibility, onChange }: ManageCardsProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm" className="h-11 gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden h-11 gap-2 sm:inline-flex"
+        >
           <SlidersHorizontal className="size-4" />
           Manage cards
         </Button>

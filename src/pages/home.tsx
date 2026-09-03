@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/select"
 import { EmptyState, TrendIndicator } from "@/components/common/bits"
 import { cn } from "@/lib/utils"
-import type { CardKey, GraphTab } from "@/lib/types"
+import type { CardKey, GraphTab, HomeSection } from "@/lib/types"
 import { useStore } from "@/store/store"
 import { CARD_TITLES, computeCardMetric } from "./home/metrics"
 import {
@@ -47,6 +47,7 @@ import {
 } from "./home/graph-data"
 import { ManageCards } from "./home/manage-cards"
 import { AICoach } from "./home/ai-coach"
+import { ConsistencyTracker } from "./home/consistency-tracker"
 
 const CARD_ICONS: Record<CardKey, React.ReactNode> = {
   volume: <Dumbbell className="size-4" />,
@@ -139,9 +140,8 @@ export default function Page() {
     [effectiveTab, weightLog, foodLog, settings, fromDate, toDate]
   )
 
-  return (
-    <div className="space-y-6 md:space-y-8">
-      {/* ── Trend stat cards ── */}
+  function renderCardsSection() {
+    return (
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
           <p className="text-sm font-medium text-muted-foreground md:text-base">
@@ -158,10 +158,10 @@ export default function Page() {
           <EmptyState
             icon={<LineChartIcon className="size-8" />}
             title="No cards shown"
-            hint="Use Manage cards to show your trend stats."
+            hint="Turn cards back on in Settings → Dashboard."
           />
         ) : (
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
             {visibleCards.map((key) => {
               const m = computeCardMetric(key, metricData)
               const trend = !m.hasData ? (
@@ -190,13 +190,12 @@ export default function Page() {
                   >
                     <X className="size-3.5" />
                   </Button>
-                  {/* phone: thin full-width row · sm+: stacked card */}
-                  <div className="flex items-center justify-between gap-3 px-4 py-3.5 sm:block sm:px-5 sm:py-5">
+                  <div className="px-3.5 py-3.5 sm:px-5 sm:py-5">
                     <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground sm:pr-6">
                       <span className="text-primary">{CARD_ICONS[key]}</span>
                       <span className="truncate">{CARD_TITLES[key]}</span>
                     </div>
-                    <div className="flex flex-col items-end sm:mt-2.5 sm:items-start">
+                    <div className="mt-2 flex flex-col items-start sm:mt-2.5">
                       <div className="text-xl font-semibold tabular-nums sm:text-3xl">
                         {m.hasData ? m.display : "-"}
                       </div>
@@ -209,8 +208,11 @@ export default function Page() {
           </div>
         )}
       </section>
+    )
+  }
 
-      {/* ── Trends graph ── */}
+  function renderGraphSection() {
+    return (
       <Card className="gap-0 pt-0">
         <CardHeader className="flex flex-col gap-3 space-y-0 border-b py-5 sm:flex-row sm:items-center">
           <div className="grid flex-1 gap-1">
@@ -338,9 +340,21 @@ export default function Page() {
           )}
         </CardContent>
       </Card>
+    )
+  }
 
-      {/* ── AI Coach ── */}
-      <AICoach />
+  const SECTION_RENDERERS: Record<HomeSection, () => React.ReactNode> = {
+    cards: renderCardsSection,
+    graph: renderGraphSection,
+    tracker: () => <ConsistencyTracker />,
+    aicoach: () => <AICoach />,
+  }
+
+  return (
+    <div className="space-y-6 md:space-y-8">
+      {uiPrefs.homeSectionOrder.map((key) => (
+        <div key={key}>{SECTION_RENDERERS[key]()}</div>
+      ))}
     </div>
   )
 }

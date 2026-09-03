@@ -158,6 +158,8 @@ export interface Settings {
   weightUnit: WeightUnit
   distanceUnit: DistanceUnit
   trendRange: TrendRange
+  /** yyyy-MM-dd the consistency tracker counts from, or "" to auto-detect from the earliest log entry. */
+  trackingStartDate: string
 }
 
 // ───────────────────────────── Dashboard UI prefs ─────────────────────────────
@@ -173,11 +175,15 @@ export type CardKey =
   | "bodyweight"
 export type GraphTab = "bodyweight" | "calories" | "protein"
 
+/** The four reorderable sections of the Home page. */
+export type HomeSection = "cards" | "graph" | "tracker" | "aicoach"
+
 export interface UiPrefs {
   cardOrder: CardKey[]
   cardVisibility: Record<CardKey, boolean>
   graphTabOrder: GraphTab[]
   graphTabVisibility: Record<GraphTab, boolean>
+  homeSectionOrder: HomeSection[]
 }
 
 // ───────────────────────────── Full backup shape ─────────────────────────────
