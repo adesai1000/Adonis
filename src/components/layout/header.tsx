@@ -47,7 +47,7 @@ export function Header() {
   const { section } = useNav()
 
   return (
-    <header className="sticky top-0 z-30 bg-background/70 backdrop-blur-xl backdrop-saturate-150 pt-safe md:border-b md:border-border/60">
+    <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md backdrop-saturate-150 pt-safe md:border-b md:border-border/60">
       <div className="mx-auto flex h-12 max-w-screen-2xl items-center justify-between gap-3 px-4 md:h-16 md:px-8 lg:px-10">
         <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight md:text-xl">
           {SECTION_TITLES[section]}

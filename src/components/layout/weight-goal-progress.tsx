@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react"
 import { convertWeight, goalProgressFraction } from "@/lib/calc"
-import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 
-const SEGMENTS = 10
+const SEGMENTS = 16
+// Any nonzero progress still shows a visible sliver in the first segment,
+// rather than rounding away to nothing.
+const MIN_VISIBLE_FRACTION = 0.12
 
 /** Compact segmented indicator of progress from starting to goal body weight. */
 export function WeightGoalProgress() {
@@ -15,6 +17,7 @@ export function WeightGoalProgress() {
     const sorted = [...weightLog].sort((a, b) =>
       a.datetime.localeCompare(b.datetime)
     )
+    // First-ever entry = starting weight, most recent = current weight.
     const start = convertWeight(sorted[0].weight, sorted[0].unit, unit)
     const current = convertWeight(
       sorted[sorted.length - 1].weight,
@@ -35,7 +38,7 @@ export function WeightGoalProgress() {
 
   if (progress === null) return null
 
-  const filled = Math.round(progress * SEGMENTS)
+  const filledUnits = progress * SEGMENTS
 
   return (
     <div
@@ -44,20 +47,23 @@ export function WeightGoalProgress() {
       aria-label={`Weight goal progress: ${Math.round(progress * 100)}%`}
     >
       {Array.from({ length: SEGMENTS }).map((_, i) => {
-        const isFilled = i < filled
+        let fraction = Math.max(0, Math.min(1, filledUnits - i))
+        if (i === 0 && progress > 0 && fraction < MIN_VISIBLE_FRACTION) {
+          fraction = MIN_VISIBLE_FRACTION
+        }
         return (
           <span
             key={i}
-            className={cn(
-              "h-2.5 w-1.5 rounded-full transition-all duration-300 ease-out",
-              isFilled
-                ? loaded
-                  ? "scale-100 bg-primary opacity-100"
-                  : "scale-50 bg-primary opacity-0"
-                : "scale-100 border border-muted-foreground/25 bg-muted-foreground/10 opacity-100"
-            )}
-            style={isFilled ? { transitionDelay: `${i * 45}ms` } : undefined}
-          />
+            className="relative h-2.5 w-1.5 shrink-0 overflow-hidden rounded-full border border-muted-foreground/25 bg-muted-foreground/10"
+          >
+            <span
+              className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-300 ease-out"
+              style={{
+                width: loaded ? `${fraction * 100}%` : "0%",
+                transitionDelay: `${i * 30}ms`,
+              }}
+            />
+          </span>
         )
       })}
     </div>
