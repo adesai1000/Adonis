@@ -78,12 +78,24 @@ export function ConsistencyTracker() {
 
   const monthLabels = useMemo(() => {
     let prevMonth = ""
-    return weeks.map((week) => {
+    const labels = weeks.map((week) => {
       const month = format(parseISO(week[0].date), "MMM")
       const label = month !== prevMonth ? month : ""
       prevMonth = month
       return label
     })
+    // A partial first month can land right beside the next month's label
+    // ("AugSep"). Drop any label that has another one within two columns.
+    for (let i = 0; i < labels.length; i++) {
+      if (!labels[i]) continue
+      for (let j = i + 1; j < Math.min(labels.length, i + 3); j++) {
+        if (labels[j]) {
+          labels[i] = ""
+          break
+        }
+      }
+    }
+    return labels
   }, [weeks])
 
   // Auto-scroll so today's column is in view with a little of the future showing.
