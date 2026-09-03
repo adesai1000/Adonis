@@ -181,14 +181,22 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     STORAGE_KEYS.routines,
     []
   )
-  const [settings, setSettings] = usePersistentState<Settings>(
+  // Raw persisted state can predate fields added later (e.g. an existing
+  // user's localStorage from before `homeSectionOrder`/`trackingStartDate`
+  // shipped). Normalize on every render — not just in the migration effect
+  // below — so no consumer ever sees a partially-shaped object, even on the
+  // very first render before effects run.
+  const [settingsRaw, setSettings] = usePersistentState<Settings>(
     STORAGE_KEYS.settings,
     defaultSettings
   )
-  const [uiPrefs, setUiPrefs] = usePersistentState<UiPrefs>(
+  const settings = useMemo(() => normalizeSettings(settingsRaw), [settingsRaw])
+
+  const [uiPrefsRaw, setUiPrefs] = usePersistentState<UiPrefs>(
     STORAGE_KEYS.uiPrefs,
     defaultUiPrefs
   )
+  const uiPrefs = useMemo(() => normalizeUiPrefs(uiPrefsRaw), [uiPrefsRaw])
   const [activeSession, setActiveSession] =
     usePersistentState<ActiveSession | null>(STORAGE_KEYS.activeSession, null)
 
