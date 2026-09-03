@@ -27,24 +27,23 @@ export function round1(n: number): number {
   return Math.round(n * 10) / 10
 }
 
-/** Always 1 decimal place. Safe against NaN/undefined. */
+/** Fixed decimal places with thousands separators (e.g. 45040 → "45,040.0"). Safe against NaN/undefined. */
 export function fmt(n: number | null | undefined, decimals = 1): string {
   const v = typeof n === "number" && isFinite(n) ? n : 0
-  return v.toFixed(decimals)
+  return v.toLocaleString(undefined, {
+    minimumFractionDigits: decimals,
+    maximumFractionDigits: decimals,
+  })
 }
 
 /** Compact integer-ish formatting with thousands separators, 1 decimal. */
 export function fmtNum(n: number | null | undefined): string {
-  const v = typeof n === "number" && isFinite(n) ? n : 0
-  return v.toLocaleString(undefined, {
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  })
+  return fmt(n, 1)
 }
 
 export function signed(n: number, decimals = 1): string {
   const v = isFinite(n) ? n : 0
-  return `${v > 0 ? "+" : ""}${v.toFixed(decimals)}`
+  return `${v > 0 ? "+" : ""}${fmt(v, decimals)}`
 }
 
 // ───────────────────────────── unit conversion ─────────────────────────────

@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Footprints, Timer } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -54,6 +55,13 @@ export function CardioTab() {
     "wt_draft_cardio",
     initialDraft()
   )
+
+  // Keep an abandoned draft's date/time from going stale across visits —
+  // always start a fresh visit to this tab at the current moment.
+  useEffect(() => {
+    setDraft((d) => ({ ...d, datetime: isoNow() }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const isSteps = draft.activity === "Steps"
   const durationSec = hmsToSeconds(toNum(draft.h), toNum(draft.m), toNum(draft.s))
@@ -114,7 +122,7 @@ export function CardioTab() {
           <SelectTrigger className="h-11 w-full">
             <SelectValue placeholder="Select activity" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" side="bottom" avoidCollisions={false}>
             {CARDIO_ACTIVITIES.map((a) => (
               <SelectItem key={a} value={a}>
                 {a}

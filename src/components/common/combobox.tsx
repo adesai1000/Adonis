@@ -80,6 +80,8 @@ export function Combobox({
       <PopoverContent
         className="w-[var(--radix-popover-trigger-width)] p-0"
         align="start"
+        side="bottom"
+        avoidCollisions={false}
       >
         <Command
           filter={(value, search, keywords) => {

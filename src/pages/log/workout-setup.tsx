@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Dumbbell, GripVertical, Play, Plus, X } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +34,13 @@ export function WorkoutSetup() {
     "wt_draft_workout_setup",
     initialDraft()
   )
+
+  // Keep an abandoned draft's date/time from going stale across visits —
+  // always start a fresh visit to this tab at the current moment.
+  useEffect(() => {
+    setDraft((d) => ({ ...d, datetime: isoNow() }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const isCustom = draft.routineId === CUSTOM
   const routine = useMemo(

@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Apple, UtensilsCrossed } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -33,6 +33,13 @@ export function FoodTab() {
     "wt_draft_food",
     initialDraft()
   )
+
+  // Keep an abandoned draft's date/time from going stale across visits —
+  // always start a fresh visit to this tab at the current moment.
+  useEffect(() => {
+    setDraft((d) => ({ ...d, datetime: isoNow() }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const options = useMemo<ComboOption[]>(
     () =>

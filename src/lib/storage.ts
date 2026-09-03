@@ -14,6 +14,8 @@ export const STORAGE_KEYS = {
   uiPrefs: "wt_ui_prefs",
   nav: "wt_nav",
   aiSummary: "wt_ai_summary",
+  aiCoachNotes: "wt_ai_coach_notes",
+  aiCoachNoteHistory: "wt_ai_coach_note_history",
   demoLoaded: "wt_demo_loaded",
   syncCode: "wt_sync_code",
   syncAuto: "wt_sync_auto",

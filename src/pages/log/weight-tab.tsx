@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { Scale } from "lucide-react"
 import { toast } from "sonner"
 import { Badge } from "@/components/ui/badge"
@@ -30,6 +30,13 @@ export function WeightTab() {
     "wt_draft_weight",
     initialDraft()
   )
+
+  // Keep an abandoned draft's date/time from going stale across visits —
+  // always start a fresh visit to this tab at the current moment.
+  useEffect(() => {
+    setDraft((d) => ({ ...d, datetime: isoNow() }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const unit = settings.weightUnit
   const weightNum = parseFloat(draft.weight)

@@ -43,9 +43,29 @@ export interface FoodDaySummary {
   items: FoodItemSummary[]
 }
 
+export interface WorkoutHistorySet {
+  reps: number
+  weight: number
+  unit: WeightUnit
+}
+
+export interface WorkoutHistoryExercise {
+  name: string
+  sets: WorkoutHistorySet[]
+}
+
+export interface WorkoutHistorySession {
+  /** ISO datetime the session took place. */
+  datetime: string
+  routineName?: string
+  exercises: WorkoutHistoryExercise[]
+}
+
 export interface WeeklyStats {
   weekLabel: string
   today: string
+  /** Rough part of the current day, e.g. "afternoon" — the day is NOT over yet. */
+  nowTimeOfDay: string
   heightInches: number
   height: string
   weightUnit: WeightUnit
@@ -73,6 +93,12 @@ export interface WeeklyStats {
     totalSets: number
     topExercises: { name: string; sets: number; topSet: string }[]
   }
+  /**
+   * The athlete's ENTIRE lifetime training log (not just the last 7 days) —
+   * every session with when it happened, and every exercise with every set's
+   * weight and reps. Use this for long-term progress context.
+   */
+  workoutHistory: WorkoutHistorySession[]
   cardio: {
     sessions: number
     totalDistance: number
@@ -97,12 +123,28 @@ export interface CoachSummary {
   weekLabel: string
 }
 
+/** One piece of free-text context the athlete has typed in for the coach, dated. */
+export interface CoachNoteEntry {
+  /** ISO datetime the note was submitted. */
+  date: string
+  text: string
+}
+
 export interface CoachInput {
   workoutLog: WorkoutSession[]
   foodLog: FoodEntry[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
   settings: Settings
+}
+
+function timeOfDayLabel(d: Date): string {
+  const h = d.getHours()
+  if (h < 5) return "late night"
+  if (h < 12) return "morning"
+  if (h < 17) return "afternoon"
+  if (h < 21) return "evening"
+  return "night"
 }
 
 // ───────────────────────────── Build the weekly snapshot ─────────────────────────────
@@ -202,6 +244,23 @@ export function buildWeeklyStats(
       topSet: `${e.topReps} x ${round1(e.topW)} ${wUnit}`,
     }))
 
+  // full lifetime workout history — every session, exercise and set, with
+  // when it happened, the weight used and the reps performed
+  const workoutHistory: WorkoutHistorySession[] = [...workoutLog]
+    .sort((a, b) => a.datetime.localeCompare(b.datetime))
+    .map((s) => ({
+      datetime: s.datetime,
+      ...(s.routineName ? { routineName: s.routineName } : {}),
+      exercises: s.exercises.map((ex) => ({
+        name: ex.name,
+        sets: ex.sets.map((st) => ({
+          reps: st.reps,
+          weight: round1(convertWeight(st.weight, st.unit, wUnit)),
+          unit: wUnit,
+        })),
+      })),
+    }))
+
   // cardio
   const cardio = cardioLog.filter((e) => inRange(e.datetime, from, now))
   const totalDistance = cardio.reduce((d, e) => d + cardioDistance(e, dUnit), 0)
@@ -222,6 +281,7 @@ export function buildWeeklyStats(
   return {
     weekLabel: "last 7 days",
     today: todayKey,
+    nowTimeOfDay: timeOfDayLabel(now),
     heightInches: hi,
     height,
     weightUnit: wUnit,
@@ -248,6 +308,7 @@ export function buildWeeklyStats(
       totalSets,
       topExercises,
     },
+    workoutHistory,
     cardio: {
       sessions: cardio.length,
       totalDistance: round1(totalDistance),
@@ -281,9 +342,11 @@ Use the athlete's units exactly as provided in the data (e.g. lbs, miles, kcal, 
 
 Read the data carefully:
 - "nutrition.days" lists exactly what was eaten each day (item names, servings, quantities, macros, and any notes). Use these real food choices for specific feedback — not just the averages.
-- "today" is the current date. A day with "isToday": true is STILL IN PROGRESS — do NOT conclude the athlete is under-eating from a partial current day; judge full intake only on completed days.
+- "today" is the current date, and "nowTimeOfDay" tells you what part of the day it is right now (morning / afternoon / evening / night). A day with "isToday": true is STILL IN PROGRESS — the athlete has not finished eating yet. If "nowTimeOfDay" is morning, afternoon, or evening, the day is NOT over: do NOT tell the athlete they are under-eating or need to eat more just because today's partial total looks low — more meals are likely still coming before the day ends. Only judge full daily intake as low or high on a day that has actually finished (any date other than "today"), or on "today" once "nowTimeOfDay" is "night" / "late night".
 - "daysLogged" tells you how many days were actually logged. If only 1-2 days exist, treat this as early/limited data: emphasize building consistent logging and training habits rather than declaring intake "dangerously low." Never alarm the athlete based on a single partial day.
 - Sodium is tracked in mg (per item and as "avgSodiumPerLoggedDay"). Note notably high sodium given cardiovascular and blood-pressure health, but do not alarm over a single day, and treat 0 mg as "not recorded" rather than truly sodium-free.
+- "training.topExercises" summarizes the last 7 days only. "workoutHistory" is the athlete's ENTIRE lifetime training log — every session (with the date/time it happened), every exercise, and every set's weight and reps. Use it for long-term context: strength progress, plateaus, PRs, and training consistency over time, not just this week.
+- After the JSON data you may see a dated log titled "Context I've given my coach over time" — free-text notes the athlete has typed in themselves across past and current sessions (e.g. an injury, a stressful week, travel, a specific goal), oldest first. Read the WHOLE log, not just the most recent entry — an older note can still be relevant (e.g. a shoulder tweak from two weeks ago that is still healing). Factor all of it into your coaching and prioritize it over assumptions you'd otherwise make from the numbers alone.
 
 Return ONLY a JSON object with EXACTLY these keys:
 {
@@ -297,8 +360,15 @@ Do not wrap the JSON in markdown. Do not add any keys beyond those five.`
 
 export async function generateCoachSummary(
   stats: WeeklyStats,
+  noteHistory: CoachNoteEntry[] = [],
   now: Date = new Date()
 ): Promise<CoachSummary> {
+  const noteBlock = noteHistory.length
+    ? "\n\nContext I've given my coach over time (oldest first):\n" +
+      noteHistory
+        .map((n) => `- [${n.date.slice(0, 10)}] ${n.text}`)
+        .join("\n")
+    : ""
   const res = await fetch("/api/deepseek", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -310,7 +380,8 @@ export async function generateCoachSummary(
           role: "user",
           content:
             "Here is my logged data for the past 7 days as JSON. Coach me.\n\n" +
-            JSON.stringify(stats, null, 2),
+            JSON.stringify(stats, null, 2) +
+            noteBlock,
         },
       ],
       response_format: { type: "json_object" },

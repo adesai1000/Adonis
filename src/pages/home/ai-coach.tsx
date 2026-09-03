@@ -18,22 +18,35 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Textarea } from "@/components/ui/textarea"
 import { useStore } from "@/store/store"
 import { STORAGE_KEYS, usePersistentState } from "@/lib/storage"
 import {
   buildWeeklyStats,
   generateCoachSummary,
   hasWeekData,
+  type CoachNoteEntry,
   type CoachSummary,
 } from "@/lib/ai"
+
+const MAX_NOTE_HISTORY = 30
 
 export function AICoach() {
   const { workoutLog, foodLog, cardioLog, weightLog, settings } = useStore()
   const [summary, setSummary] = usePersistentState<CoachSummary | null>(
     STORAGE_KEYS.aiSummary,
     null
+  )
+  const [draftNote, setDraftNote] = usePersistentState<string>(
+    STORAGE_KEYS.aiCoachNotes,
+    ""
+  )
+  const [noteHistory, setNoteHistory] = usePersistentState<CoachNoteEntry[]>(
+    STORAGE_KEYS.aiCoachNoteHistory,
+    []
   )
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -47,9 +60,19 @@ export function AICoach() {
   async function run() {
     setLoading(true)
     setError(null)
+    const trimmed = draftNote.trim()
+    const pendingHistory = trimmed
+      ? [...noteHistory, { date: new Date().toISOString(), text: trimmed }].slice(
+          -MAX_NOTE_HISTORY
+        )
+      : noteHistory
     try {
-      const result = await generateCoachSummary(stats)
+      const result = await generateCoachSummary(stats, pendingHistory)
       setSummary(result)
+      if (trimmed) {
+        setNoteHistory(pendingHistory)
+        setDraftNote("")
+      }
       toast.success("Coach summary ready")
     } catch (e) {
       setError(e instanceof Error ? e.message : "Something went wrong.")
@@ -88,6 +111,30 @@ export function AICoach() {
             )}
             {loading ? "Generating" : summary ? "Regenerate" : "Generate"}
           </Button>
+        </div>
+
+        <div className="space-y-1.5 pt-1">
+          <Label
+            htmlFor="ai-coach-notes"
+            className="text-xs text-muted-foreground"
+          >
+            Anything to add before generating? (optional)
+          </Label>
+          <Textarea
+            id="ai-coach-notes"
+            value={draftNote}
+            onChange={(e) => setDraftNote(e.target.value)}
+            placeholder="e.g. I tweaked my shoulder this week, or I'm cutting for a wedding in a month…"
+            disabled={loading}
+            className="min-h-16 resize-none text-sm"
+          />
+          {noteHistory.length > 0 && (
+            <p className="text-xs text-muted-foreground">
+              Your coach remembers {noteHistory.length}{" "}
+              {noteHistory.length === 1 ? "earlier note" : "earlier notes"} you've
+              sent — new ones you add here are saved alongside them.
+            </p>
+          )}
         </div>
       </CardHeader>
 
