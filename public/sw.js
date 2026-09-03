@@ -2,7 +2,7 @@
 // - App shell is cached so the app opens offline.
 // - Static assets are served stale-while-revalidate.
 // - /api/* is never cached (always hits the network).
-const CACHE = "adonis-v2"
+const CACHE = "adonis-v3"
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
