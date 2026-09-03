@@ -88,8 +88,8 @@ export function AICoach() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
             <CardTitle className="flex items-center gap-2 text-base md:text-lg">
-              <span className="flex size-7 items-center justify-center rounded-md bg-primary/10 text-primary">
-                <Sparkles className="size-4" />
+              <span className="grid size-6 place-items-center rounded-lg bg-muted text-ink-2">
+                <Sparkles className="size-3.5" />
               </span>
               AI Coach
             </CardTitle>
@@ -201,7 +201,9 @@ function SummaryView({ summary }: { summary: CoachSummary }) {
   return (
     <div className="space-y-5">
       <div className="space-y-1.5">
-        <h3 className="text-lg font-semibold leading-snug">{summary.headline}</h3>
+        <h3 className="font-display text-[22px] leading-snug font-medium tracking-[-0.015em]">
+          {summary.headline}
+        </h3>
         {summary.overview && (
           <p className="text-sm leading-relaxed text-muted-foreground">
             {summary.overview}
@@ -212,18 +214,18 @@ function SummaryView({ summary }: { summary: CoachSummary }) {
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         <SummaryList
           icon={
-            <CheckCircle2 className="size-4 text-emerald-600 dark:text-emerald-400" />
+            <CheckCircle2 className="size-4 text-green-deep dark:text-green" />
           }
           title="What's working"
           items={summary.highlights}
         />
         <SummaryList
-          icon={<Target className="size-4 text-amber-600 dark:text-amber-400" />}
+          icon={<Target className="size-4 text-amber" />}
           title="Focus on"
           items={summary.focus}
         />
         <SummaryList
-          icon={<Lightbulb className="size-4 text-primary" />}
+          icon={<Lightbulb className="size-4 text-green-deep dark:text-green" />}
           title="Coach's tips"
           items={summary.tips}
           className="sm:col-span-2 lg:col-span-1"

@@ -128,7 +128,7 @@ export function WeightTab() {
             hint="Your latest entries will show here."
           />
         ) : (
-          <ul className="divide-y rounded-lg border">
+          <ul className="divide-y divide-line rounded-[14px] border border-line">
             {recent.map((e) => {
               const display = round1(convertWeight(e.weight, e.unit, unit))
               return (

@@ -2,9 +2,11 @@ import { Check, Loader2, TriangleAlert } from "lucide-react"
 import { useNav, type Section } from "@/store/nav"
 import { useSync } from "@/store/sync"
 import { cn } from "@/lib/utils"
+import { BrandMark, Wordmark } from "@/components/brand/logo"
+import { TopNav } from "./navigation"
 import { WeightGoalProgress } from "./weight-goal-progress"
 
-const SECTION_TITLES: Record<Section, string> = {
+export const SECTION_TITLES: Record<Section, string> = {
   home: "Home",
   log: "Log",
   meals: "Meals",
@@ -19,44 +21,57 @@ function SyncBadge() {
 
   const map = {
     syncing: {
-      icon: <Loader2 className="size-3.5 animate-spin text-muted-foreground" />,
+      icon: <Loader2 className="size-3.5 animate-spin text-ink-3" />,
       text: "Syncing…",
-      cls: "text-muted-foreground",
+      cls: "text-ink-2",
     },
     synced: {
-      icon: <Check className="size-3.5 text-emerald-500" />,
+      icon: <Check className="size-3.5 text-green-deep dark:text-green" />,
       text: "Synced",
       cls: "text-foreground",
     },
     error: {
-      icon: <TriangleAlert className="size-3.5 text-destructive" />,
+      icon: <TriangleAlert className="size-3.5 text-red" />,
       text: "Sync failed",
-      cls: "text-destructive",
+      cls: "text-red",
     },
   }[phase]
 
   return (
-    <div className="flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium duration-200 animate-in fade-in-0 zoom-in-95">
+    <div className="pill-surface flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold duration-200 animate-in fade-in-0 zoom-in-95">
       {map.icon}
       <span className={cn(map.cls)}>{map.text}</span>
     </div>
   )
 }
 
+/** Stickshift topbar: an icy frosted pill that floats over the page. */
 export function Header() {
-  const { section } = useNav()
+  const { section, setSection } = useNav()
 
   return (
-    <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-md backdrop-saturate-150 pt-safe md:border-b md:border-border/60">
-      <div className="mx-auto flex h-12 max-w-screen-2xl items-center justify-between gap-3 px-4 md:h-16 md:px-8 lg:px-10">
-        <h1 className="min-w-0 flex-1 truncate text-lg font-semibold tracking-tight md:text-xl">
-          {SECTION_TITLES[section]}
-        </h1>
-        <div className="flex shrink-0 items-center gap-3">
+    <div className="sticky top-0 z-30 px-3 pt-safe md:px-4">
+      <header className="topbar-glass glint relative mx-auto mt-2 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-3 md:px-4 md:py-2.5">
+        <button
+          type="button"
+          onClick={() => setSection("home")}
+          aria-label="Adonis home"
+          className="flex shrink-0 items-center gap-2.5 rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          <BrandMark size={36} />
+          <Wordmark className="hidden sm:inline" />
+          <span className="font-display text-[17px] font-semibold tracking-[-0.01em] sm:hidden">
+            {SECTION_TITLES[section]}
+          </span>
+        </button>
+
+        <TopNav />
+
+        <div className="flex shrink-0 items-center gap-2.5">
           <WeightGoalProgress />
           <SyncBadge />
         </div>
-      </div>
-    </header>
+      </header>
+    </div>
   )
 }

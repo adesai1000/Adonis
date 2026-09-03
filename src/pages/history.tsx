@@ -272,7 +272,7 @@ function WorkoutSection({
           {sessions.map((s) => {
             const vol = sessionVolume(s, weightUnit)
             return (
-              <div key={s.id} className="rounded-lg border p-3">
+              <div key={s.id} className="rounded-[14px] border border-line p-3">
                 <div className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-baseline gap-2">

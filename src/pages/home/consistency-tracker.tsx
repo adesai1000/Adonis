@@ -11,18 +11,19 @@ import {
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 
+/** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
   switch (level) {
     case 4:
-      return "bg-muted/40"
+      return "bg-[var(--heat-0)] opacity-40"
     case 3:
-      return "border border-muted-foreground/25 bg-transparent"
+      return "border border-line-strong bg-transparent"
     case 2:
-      return "bg-blue-600 dark:bg-blue-500"
+      return "bg-[var(--heat-4)]"
     case 1:
-      return "bg-sky-300 dark:bg-sky-800"
+      return "bg-[var(--heat-2)]"
     default:
-      return "bg-muted"
+      return "bg-[var(--heat-0)]"
   }
 }
 
@@ -51,7 +52,7 @@ function parseDate(value: string): Date | null {
 }
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""]
-const TILE_SIZE = 12
+const TILE_SIZE = 13
 const GAP = 3
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
@@ -116,10 +117,10 @@ export function ConsistencyTracker() {
   return (
     <Card className="gap-4 py-5">
       <CardHeader className="flex flex-row items-center gap-3 px-5">
-        <span className="flex size-7 items-center justify-center rounded-md bg-muted text-foreground">
-          <Grid3x3 className="size-4" />
+        <span className="grid size-6 place-items-center rounded-lg bg-muted text-ink-2">
+          <Grid3x3 className="size-3.5" />
         </span>
-        <span className="text-sm font-semibold">Consistency</span>
+        <span className="text-[13px] font-semibold">Consistency</span>
       </CardHeader>
 
       <CardContent className="px-5">
@@ -164,7 +165,7 @@ export function ConsistencyTracker() {
                   week.map((day, di) => (
                     <span
                       key={`${wi}-${di}`}
-                      className={cn("rounded-[3px]", tileClass(day.level))}
+                      className={cn("rounded-[3.5px]", tileClass(day.level))}
                       title={tileTitle(day)}
                     />
                   ))

@@ -26,26 +26,26 @@ export function ResumeBanner() {
   const exerciseCount = activeSession.exercises.length
 
   return (
-    <div className="sticky top-12 z-20 border-b bg-muted px-4 py-2.5 md:top-16 md:px-8 lg:px-10">
-      <div className="mx-auto flex max-w-screen-2xl items-center gap-3">
+    <div className="px-3 pt-2 md:px-4">
+      <div className="glass mx-auto flex max-w-[1720px] items-center gap-3 rounded-[18px] px-4 py-2.5">
         <span className="relative flex size-2.5 shrink-0">
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-primary opacity-75" />
-          <span className="relative inline-flex size-2.5 rounded-full bg-primary" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green opacity-75" />
+          <span className="relative inline-flex size-2.5 rounded-full bg-green" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">Unfinished workout session</p>
-          <p className="truncate text-xs text-muted-foreground">
+          <p className="truncate text-sm font-semibold">Unfinished workout session</p>
+          <p className="truncate text-xs text-ink-3">
             {exerciseCount} exercise{exerciseCount === 1 ? "" : "s"} in progress
           </p>
         </div>
-        <Button size="sm" className="h-8 gap-1.5" onClick={() => goLog("workout")}>
+        <Button size="sm" className="gap-1.5" onClick={() => goLog("workout")}>
           <Play className="size-3.5" />
           Resume
         </Button>
         <Button
-          size="icon"
+          size="icon-sm"
           variant="ghost"
-          className="size-8 shrink-0"
+          className="shrink-0"
           onClick={() => setConfirm(true)}
           aria-label="Discard session"
         >
@@ -58,14 +58,14 @@ export function ResumeBanner() {
           <AlertDialogHeader>
             <AlertDialogTitle>Discard this session?</AlertDialogTitle>
             <AlertDialogDescription>
-              Your in-progress workout will be permanently removed. This cannot be
-              undone.
+              The unfinished workout and its logged sets will be removed. This
+              cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Keep session</AlertDialogCancel>
+            <AlertDialogCancel>Keep it</AlertDialogCancel>
             <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
               onClick={() => {
                 clearActiveSession()
                 toast.success("Session discarded")

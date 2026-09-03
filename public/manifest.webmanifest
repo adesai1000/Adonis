@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0a0a0a",
-  "theme_color": "#009ADA",
+  "background_color": "#FBFBF9",
+  "theme_color": "#FBFBF9",
   "icons": [
     {
       "src": "/android-chrome-192x192.png",
@@ -22,7 +22,7 @@
       "purpose": "any"
     },
     {
-      "src": "/android-chrome-512x512.png",
+      "src": "/android-chrome-512x512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"

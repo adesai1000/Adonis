@@ -275,7 +275,7 @@ export function WorkoutSession() {
           </div>
 
           {/* Previous performance */}
-          <div className="rounded-lg border bg-muted/30 px-4 py-3">
+          <div className="rounded-[14px] border border-line bg-muted/50 px-4 py-3">
             <div className="mb-1.5 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <History className="size-3.5" />
               Previous
@@ -289,7 +289,7 @@ export function WorkoutSession() {
                   {previous.sets.map((st, i) => (
                     <span
                       key={i}
-                      className="rounded-md bg-background px-2 py-1 text-xs tabular-nums shadow-xs"
+                      className="rounded-lg bg-card px-2 py-1 font-mono text-xs tabular-nums"
                     >
                       {fmt(st.reps, 0)} × {fmt(st.weight)} {st.unit}
                     </span>
@@ -548,7 +548,7 @@ function SummaryStat({
   mono?: boolean
 }) {
   return (
-    <div className="rounded-lg border bg-muted/30 px-2 py-3">
+    <div className="rounded-[14px] border border-line bg-muted/50 px-2 py-3">
       <p
         className={
           "text-lg font-semibold tabular-nums" + (mono ? " font-mono" : "")

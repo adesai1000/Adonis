@@ -320,9 +320,9 @@ function MealCard({
 
 function MacroStat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-md bg-muted/50 py-1.5">
-      <div className="text-sm font-semibold tabular-nums">{value}</div>
-      <div className="text-xs tracking-wide text-muted-foreground uppercase">
+    <div className="rounded-xl bg-muted py-2">
+      <div className="text-[13px] font-semibold tabular-nums">{value}</div>
+      <div className="text-[10px] font-semibold tracking-[0.09em] text-ink-3 uppercase">
         {label}
       </div>
     </div>

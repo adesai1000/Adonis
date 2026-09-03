@@ -214,7 +214,7 @@ function RoutineBuilder({
                 getKey={(row) => row._uid}
                 onReorder={(next) => setRows(next)}
                 renderItem={(row, handle, { index }) => (
-                  <div className="mb-3 rounded-lg border bg-card p-3">
+                  <div className="mb-3 rounded-[14px] border border-line bg-card p-3">
                     <div className="flex items-center gap-2">
                       <button
                         type="button"
@@ -324,7 +324,7 @@ function RoutineRow({
   const { deleteRoutine } = useStore()
   const count = routine.exercises.length
   return (
-    <div className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+    <div className="flex items-center gap-3 rounded-[14px] border border-line bg-card px-3 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium">{routine.name}</p>
         <p className="text-xs text-muted-foreground">

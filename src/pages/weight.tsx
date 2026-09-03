@@ -121,17 +121,17 @@ export default function Page() {
       {/* ── Stats row ── */}
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
         <StatCard label="Current">
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="display-num text-[26px]">
             {hasData ? `${fmt(current)} ${unit}` : "-"}
           </span>
         </StatCard>
         <StatCard label="Starting">
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="display-num text-[26px]">
             {hasData ? `${fmt(starting)} ${unit}` : "-"}
           </span>
         </StatCard>
         <StatCard label="Net change">
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="display-num text-[26px]">
             {hasData ? `${signed(netChange)} ${unit}` : "-"}
           </span>
           {hasData && (
@@ -143,7 +143,7 @@ export default function Page() {
           )}
         </StatCard>
         <StatCard label="Avg / week">
-          <span className="text-xl font-semibold tabular-nums">
+          <span className="display-num text-[26px]">
             {hasData ? `${signed(avgWeekly)} ${unit}` : "-"}
           </span>
           {hasData && (

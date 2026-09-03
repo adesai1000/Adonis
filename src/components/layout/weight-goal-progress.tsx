@@ -6,8 +6,14 @@ const SEGMENTS = 16
 // Any nonzero progress still shows a visible sliver in the first segment,
 // rather than rounding away to nothing.
 const MIN_VISIBLE_FRACTION = 0.12
+/** The leading filled segments glow green (Stickshift `.segmeter i.hot`). */
+const HOT_SEGMENTS = 3
 
-/** Compact segmented indicator of progress from starting to goal body weight. */
+/**
+ * Stickshift's segmented "barcode" meter, reading progress from the first-ever
+ * weigh-in to the goal weight: ink for ground covered, green at the leading
+ * edge, hairline for what's left.
+ */
 export function WeightGoalProgress() {
   const { weightLog, settings } = useStore()
   const unit = settings.weightUnit
@@ -39,10 +45,11 @@ export function WeightGoalProgress() {
   if (progress === null) return null
 
   const filledUnits = progress * SEGMENTS
+  const lastFilled = Math.ceil(filledUnits) - 1
 
   return (
     <div
-      className="flex shrink-0 items-center gap-[3px]"
+      className="flex shrink-0 items-end gap-[3px]"
       role="img"
       aria-label={`Weight goal progress: ${Math.round(progress * 100)}%`}
     >
@@ -51,13 +58,17 @@ export function WeightGoalProgress() {
         if (i === 0 && progress > 0 && fraction < MIN_VISIBLE_FRACTION) {
           fraction = MIN_VISIBLE_FRACTION
         }
+        const hot = fraction > 0 && i > lastFilled - HOT_SEGMENTS
         return (
           <span
             key={i}
-            className="relative h-2.5 w-1.5 shrink-0 overflow-hidden rounded-full border border-muted-foreground/25 bg-muted-foreground/10"
+            className="relative h-3.5 w-[5px] shrink-0 overflow-hidden rounded-[2px] bg-line-strong"
           >
             <span
-              className="absolute inset-y-0 left-0 rounded-full bg-primary transition-[width] duration-300 ease-out"
+              className={
+                "absolute inset-y-0 left-0 rounded-[2px] transition-[width] duration-300 ease-out " +
+                (hot ? "bg-green" : "bg-foreground")
+              }
               style={{
                 width: loaded ? `${fraction * 100}%` : "0%",
                 transitionDelay: `${i * 30}ms`,

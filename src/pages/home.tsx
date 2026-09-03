@@ -144,9 +144,7 @@ export default function Page() {
     return (
       <section className="space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <p className="text-sm font-medium text-muted-foreground md:text-base">
-            Today
-          </p>
+          <p className="microlabel">Today</p>
           <ManageCards
             order={uiPrefs.cardOrder}
             visibility={uiPrefs.cardVisibility}
@@ -190,16 +188,18 @@ export default function Page() {
                   >
                     <X className="size-3.5" />
                   </Button>
-                  <div className="px-3.5 py-3.5 sm:px-5 sm:py-5">
-                    <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground sm:pr-6">
-                      <span className="text-primary">{CARD_ICONS[key]}</span>
+                  <div className="px-4 py-4 sm:px-5 sm:py-5">
+                    <div className="flex items-center gap-2 text-[13px] font-semibold text-foreground sm:pr-6">
+                      <span className="grid size-6 shrink-0 place-items-center rounded-lg bg-muted text-ink-2 [&_svg]:size-3.5">
+                        {CARD_ICONS[key]}
+                      </span>
                       <span className="truncate">{CARD_TITLES[key]}</span>
                     </div>
-                    <div className="mt-2 flex flex-col items-start sm:mt-2.5">
-                      <div className="text-xl font-semibold tabular-nums sm:text-3xl">
+                    <div className="mt-3 flex flex-col items-start gap-2 sm:mt-4">
+                      <div className="display-num text-[24px] sm:text-[40px]">
                         {m.hasData ? m.display : "-"}
                       </div>
-                      <div className="mt-0.5 sm:mt-1.5">{trend}</div>
+                      <div>{trend}</div>
                     </div>
                   </div>
                 </Card>
@@ -371,7 +371,7 @@ function GraphTabs({
   onSelect: (t: GraphTab) => void
 }) {
   return (
-    <div className="inline-flex flex-wrap gap-1 rounded-lg bg-muted p-1">
+    <div className="pill-surface inline-flex flex-wrap gap-0.5 rounded-full p-1">
       {tabs.map((tab) => {
         const isActive = tab === active
         return (
@@ -380,10 +380,10 @@ function GraphTabs({
             type="button"
             onClick={() => onSelect(tab)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium transition-all duration-150 active:scale-95 md:text-base",
+              "rounded-full px-4 py-2 text-[13.5px] font-medium transition-[color,background-color] duration-200 active:scale-95",
               isActive
-                ? "bg-background text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-foreground text-background"
+                : "text-ink-2 hover:text-foreground"
             )}
           >
             {GRAPH_TITLES[tab]}

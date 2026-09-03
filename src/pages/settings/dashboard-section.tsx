@@ -60,7 +60,7 @@ function SectionRow({
   handle: DragHandleProps
 }) {
   return (
-    <div className="mb-2 flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+    <div className="mb-2 flex items-center gap-3 rounded-[14px] border border-line bg-card px-3 py-2.5">
       <button
         type="button"
         aria-label="Drag to reorder"
@@ -153,7 +153,7 @@ function ReorderRow({
   handle: DragHandleProps
 }) {
   return (
-    <div className="mb-2 flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5">
+    <div className="mb-2 flex items-center gap-3 rounded-[14px] border border-line bg-card px-3 py-2.5">
       <button
         type="button"
         aria-label="Drag to reorder"

@@ -215,7 +215,7 @@ export function WorkoutSetup() {
                 const ex = exerciseById.get(item.id)
                 if (!ex) return null
                 return (
-                  <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-2.5">
+                  <div className="flex items-center gap-2 rounded-[14px] border border-line bg-card px-3 py-2.5">
                     <button
                       type="button"
                       {...handle}
@@ -245,7 +245,7 @@ export function WorkoutSetup() {
               }}
             />
           ) : (
-            <ul className="divide-y rounded-lg border">
+            <ul className="divide-y divide-line rounded-[14px] border border-line">
               {preview.map((ex, i) => (
                 <li
                   key={`${ex.id}-${i}`}

@@ -294,7 +294,7 @@ export function ExerciseLibrarySection() {
             hint="Try a different search, or add a custom exercise."
           />
         ) : (
-          <ScrollArea className="h-80 rounded-lg border">
+          <ScrollArea className="h-80 rounded-[14px] border border-line">
             <div className="p-2">
               {groups.map(([group, list]) => (
                 <div key={group} className="mb-2 last:mb-0">

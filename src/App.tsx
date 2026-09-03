@@ -5,7 +5,8 @@ import { NavProvider, useNav } from "@/store/nav"
 import { SyncProvider } from "@/store/sync"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/layout/header"
-import { Sidebar, BottomNav } from "@/components/layout/navigation"
+import { BottomNav } from "@/components/layout/navigation"
+import { PageHead } from "@/components/layout/page-head"
 import { ResumeBanner } from "@/components/layout/resume-banner"
 import { QuickLogFab } from "@/components/layout/quick-log-fab"
 import { PullToRefresh } from "@/components/layout/pull-to-refresh"
@@ -39,26 +40,23 @@ function CurrentPage() {
 function Shell() {
   const { section } = useNav()
   return (
-    <div className="min-h-dvh">
-      <Sidebar />
-      <div className="flex min-h-dvh flex-col md:pl-56">
-        <Header />
-        <ResumeBanner />
-        <main className="mx-auto w-full max-w-screen-2xl flex-1 overflow-x-clip px-4 pb-28 pt-2 md:px-8 md:pb-14 md:pt-7 lg:px-10">
-          <PullToRefresh>
-            <div key={section} className="animate-in fade-in-50 duration-300">
-              <CurrentPage />
-            </div>
-          </PullToRefresh>
-        </main>
-      </div>
+    <div className="flex min-h-dvh flex-col">
+      <Header />
+      <ResumeBanner />
+      <main className="mx-auto w-full max-w-[1760px] flex-1 overflow-x-clip px-4 pb-32 md:px-[clamp(18px,3.2vw,64px)] md:pb-16">
+        <PullToRefresh>
+          <PageHead />
+          <div key={section} className="animate-in fade-in-50 duration-300">
+            <CurrentPage />
+          </div>
+        </PullToRefresh>
+      </main>
       <BottomNav />
       {section === "home" && <QuickLogFab />}
       <Toaster
-        position="top-center"
-        richColors
-        offset={{ top: "calc(env(safe-area-inset-top) + 16px)" }}
-        mobileOffset={{ top: "calc(env(safe-area-inset-top) + 12px)" }}
+        position="bottom-center"
+        offset={{ bottom: "28px" }}
+        mobileOffset={{ bottom: "calc(env(safe-area-inset-bottom) + 92px)" }}
       />
     </div>
   )

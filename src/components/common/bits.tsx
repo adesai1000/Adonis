@@ -20,13 +20,13 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed px-6 py-10 text-center",
+        "flex flex-col items-center justify-center gap-2 rounded-[18px] border border-dashed border-line-strong bg-muted/40 px-6 py-10 text-center",
         className
       )}
     >
-      {icon && <div className="text-muted-foreground/60">{icon}</div>}
-      <p className="text-sm font-medium">{title}</p>
-      {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
+      {icon && <div className="text-ink-3/70">{icon}</div>}
+      <p className="text-sm font-semibold">{title}</p>
+      {hint && <p className="max-w-xs text-xs leading-relaxed text-ink-3">{hint}</p>}
       {action && <div className="mt-1">{action}</div>}
     </div>
   )
@@ -35,10 +35,11 @@ export function EmptyState({
 // ───────────────────────────── FieldError ─────────────────────────────
 export function FieldError({ children }: { children?: ReactNode }) {
   if (!children) return null
-  return <p className="text-xs font-medium text-destructive">{children}</p>
+  return <p className="text-xs font-medium text-red">{children}</p>
 }
 
 // ───────────────────────────── TrendIndicator ─────────────────────────────
+/** Stickshift `.chip.up` / `.chip.down`: tinted pill with a direction glyph. */
 export function TrendIndicator({
   direction,
   text,
@@ -54,14 +55,14 @@ export function TrendIndicator({
     direction === "up" ? ArrowUp : direction === "down" ? ArrowDown : Minus
   const color =
     tone === "good"
-      ? "text-emerald-600 dark:text-emerald-400"
+      ? "bg-green-tint text-green-ink"
       : tone === "bad"
-        ? "text-destructive"
-        : "text-muted-foreground"
+        ? "bg-red-tint text-red"
+        : "bg-muted text-ink-2"
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 text-xs font-medium",
+        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold",
         color,
         className
       )}
@@ -105,7 +106,7 @@ export function Stepper({
       >
         <Minus className="size-4" />
       </Button>
-      <div className="min-w-[3.5rem] flex-1 text-center text-lg font-semibold tabular-nums">
+      <div className="display-num min-w-[3.5rem] flex-1 text-center text-[22px]">
         {format(value)}
       </div>
       <Button
