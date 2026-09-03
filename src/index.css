@@ -123,17 +123,17 @@
 
   --background: var(--canvas);
   --foreground: var(--ink);
-  --card: #111412;
+  --card: #1a1e1b;
   --card-foreground: var(--ink);
-  --popover: #161a17;
+  --popover: #1f2420;
   --popover-foreground: var(--ink);
 
   --primary: var(--green);
   --primary-foreground: #101310;
 
-  --secondary: #1c211d;
+  --secondary: #252b26;
   --secondary-foreground: var(--ink-2);
-  --muted: #1c211d;
+  --muted: #252b26;
   --muted-foreground: var(--ink-3);
   --accent: var(--green-tint);
   --accent-foreground: var(--green-ink);
@@ -171,10 +171,11 @@
   --shadow-glass: 0 12px 40px -8px rgba(29, 185, 84, 0.25);
   --shadow-fab: 0 10px 24px -8px rgba(0, 0, 0, 0.7);
 
+  /* on a pure-black canvas the cards need real lift to read as a layer */
   --glass-bg: linear-gradient(
     150deg,
-    rgba(255, 255, 255, 0.07),
-    rgba(255, 255, 255, 0.035)
+    rgba(255, 255, 255, 0.13),
+    rgba(255, 255, 255, 0.08)
   );
   --glass-edge: rgba(255, 255, 255, 0.1);
   --glass-rim: rgba(29, 185, 84, 0.22);

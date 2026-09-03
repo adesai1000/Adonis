@@ -39,7 +39,6 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { EmptyState } from "@/components/common/bits"
-import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 import {
   cardioDistance,
@@ -155,27 +154,18 @@ function SectionCard({
   )
 }
 
-/** Tiny macro pill: `P 8 g`, or a strong one for the kcal total. */
+/** One cell of the macro grid: `P 8 g`. */
 function MacroChip({
   label,
-  strong,
   children,
 }: {
-  label?: string
-  strong?: boolean
+  label: string
   children: ReactNode
 }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] leading-4 whitespace-nowrap",
-        strong ? "bg-foreground font-semibold text-background" : "bg-muted text-ink-2"
-      )}
-    >
-      {label && <span className="font-semibold text-ink-3">{label}</span>}
-      <span className={strong ? undefined : "font-medium text-foreground"}>
-        {children}
-      </span>
+    <span className="flex min-w-0 items-baseline justify-center gap-1 rounded-full bg-muted px-1.5 py-1 text-[11px] leading-4 whitespace-nowrap">
+      <span className="font-semibold text-ink-3">{label}</span>
+      <span className="truncate font-medium text-foreground">{children}</span>
     </span>
   )
 }
@@ -207,46 +197,7 @@ function FoodSection({
         <NothingLogged what="no food entries for this day" />
       ) : (
         <div className="space-y-3">
-          <ul className="divide-y">
-            {entries.map((e) => (
-              <li
-                key={e.id}
-                className="flex items-start gap-3 py-2 first:pt-0"
-              >
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-baseline justify-between gap-2">
-                    <span className="truncate font-medium">{e.name}</span>
-                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
-                      {formatTime(e.datetime)}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {e.serving} × {fmtNum(e.quantity)}
-                  </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1 tabular-nums">
-                    <MacroChip strong>
-                      {fmtCompact(e.calories)} kcal
-                    </MacroChip>
-                    <MacroChip label="P">{fmtCompact(e.protein)} g</MacroChip>
-                    <MacroChip label="C">{fmtCompact(e.carbs)} g</MacroChip>
-                    <MacroChip label="F">{fmtCompact(e.fat)} g</MacroChip>
-                    <MacroChip label="Na">{fmtCompact(e.sodium ?? 0)} mg</MacroChip>
-                  </div>
-                  {e.notes && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
-                      {e.notes}
-                    </p>
-                  )}
-                </div>
-                <DeleteButton
-                  label="Delete food entry"
-                  description={`Delete "${e.name}" (${fmtNum(e.calories)} kcal)? This cannot be undone.`}
-                  onConfirm={() => onDelete(e.id)}
-                />
-              </li>
-            ))}
-          </ul>
-          <Separator />
+          {/* Day totals lead; the individual entries follow. */}
           <div className="grid grid-cols-3 gap-2 tabular-nums sm:grid-cols-5">
             {[
               ["Calories", `${fmtCompact(totals.calories)} kcal`],
@@ -261,6 +212,46 @@ function FoodSection({
               </div>
             ))}
           </div>
+          <Separator />
+          <ul className="divide-y divide-line">
+            {entries.map((e) => (
+              <li
+                key={e.id}
+                className="flex items-start gap-2 py-2.5 first:pt-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="truncate font-medium">{e.name}</span>
+                    <span className="shrink-0 text-xs text-ink-3 tabular-nums">
+                      {formatTime(e.datetime)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-ink-3 tabular-nums">
+                    <span className="font-semibold text-foreground">
+                      {fmtCompact(e.calories)} kcal
+                    </span>{" "}
+                    · {e.serving} × {fmtNum(e.quantity)}
+                  </p>
+                  {/* fixed 4-up grid so the macros line up down the list;
+                      sodium gets a wider column so "1,300 mg" fits */}
+                  <div className="mt-1.5 grid grid-cols-[1fr_1fr_1fr_1.45fr] gap-1 tabular-nums">
+                    <MacroChip label="P">{fmtCompact(e.protein)} g</MacroChip>
+                    <MacroChip label="C">{fmtCompact(e.carbs)} g</MacroChip>
+                    <MacroChip label="F">{fmtCompact(e.fat)} g</MacroChip>
+                    <MacroChip label="Na">{fmtCompact(e.sodium ?? 0)} mg</MacroChip>
+                  </div>
+                  {e.notes && (
+                    <p className="mt-1 text-xs text-ink-3">{e.notes}</p>
+                  )}
+                </div>
+                <DeleteButton
+                  label="Delete food entry"
+                  description={`Delete "${e.name}" (${fmtNum(e.calories)} kcal)? This cannot be undone.`}
+                  onConfirm={() => onDelete(e.id)}
+                />
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </SectionCard>

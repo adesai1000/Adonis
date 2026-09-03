@@ -61,7 +61,7 @@ export function TopNav() {
             className={cn(
               "rounded-full px-4 py-2 text-[13.5px] font-medium whitespace-nowrap transition-[color,background-color] duration-200",
               active
-                ? "bg-foreground text-background"
+                ? "bg-foreground text-background dark:border dark:border-white/15 dark:bg-white/10 dark:text-foreground dark:backdrop-blur-md"
                 : "text-ink-2 hover:text-foreground"
             )}
           >
@@ -104,13 +104,15 @@ export function BottomNav() {
               <span
                 className={cn(
                   "flex h-8 w-12 items-center justify-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90",
-                  active ? "bg-foreground" : "bg-transparent"
+                  active
+                    ? "bg-foreground dark:border dark:border-white/15 dark:bg-white/12 dark:backdrop-blur-md"
+                    : "bg-transparent"
                 )}
               >
                 <Icon
                   className={cn(
                     "size-[1.25rem] transition-colors",
-                    active ? "text-background" : "text-ink-2"
+                    active ? "text-background dark:text-foreground" : "text-ink-2"
                   )}
                   strokeWidth={active ? 2.4 : 2}
                 />

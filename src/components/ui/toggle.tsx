@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 
 /** Pill segment; `on` = ink pill (matches the tab rail). */
 const toggleVariants = cva(
-  "inline-flex items-center justify-center gap-2 rounded-full text-[13.5px] font-medium whitespace-nowrap text-ink-2 transition-[color,background-color,box-shadow] duration-200 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/40 data-[state=on]:bg-foreground data-[state=on]:text-background [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "inline-flex items-center justify-center gap-2 rounded-full text-[13.5px] font-medium whitespace-nowrap text-ink-2 transition-[color,background-color,box-shadow] duration-200 outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/40 data-[state=on]:bg-foreground data-[state=on]:text-background dark:data-[state=on]:border dark:data-[state=on]:border-white/15 dark:data-[state=on]:bg-white/10 dark:data-[state=on]:text-foreground dark:data-[state=on]:backdrop-blur-md [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   {
     variants: {
       variant: {

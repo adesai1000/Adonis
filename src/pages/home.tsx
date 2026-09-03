@@ -382,7 +382,7 @@ function GraphTabs({
             className={cn(
               "rounded-full px-4 py-2 text-[13.5px] font-medium transition-[color,background-color] duration-200 active:scale-95",
               isActive
-                ? "bg-foreground text-background"
+                ? "bg-foreground text-background dark:border dark:border-white/15 dark:bg-white/10 dark:text-foreground dark:backdrop-blur-md"
                 : "text-ink-2 hover:text-foreground"
             )}
           >

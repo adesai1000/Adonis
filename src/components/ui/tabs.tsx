@@ -65,6 +65,7 @@ function TabsTrigger({
       className={cn(
         "relative inline-flex h-full flex-1 items-center justify-center gap-1.5 rounded-full px-4 py-2 text-[13.5px] font-medium whitespace-nowrap text-ink-2 transition-[color,background-color] duration-200 group-data-[orientation=vertical]/tabs:w-full group-data-[orientation=vertical]/tabs:justify-start hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
         "data-[state=active]:bg-foreground data-[state=active]:text-background",
+        "dark:data-[state=active]:border dark:data-[state=active]:border-white/15 dark:data-[state=active]:bg-white/10 dark:data-[state=active]:text-foreground dark:data-[state=active]:backdrop-blur-md",
         "group-data-[variant=line]/tabs-list:data-[state=active]:bg-transparent group-data-[variant=line]/tabs-list:data-[state=active]:text-foreground",
         "after:absolute after:bg-foreground after:opacity-0 after:transition-opacity group-data-[orientation=horizontal]/tabs:after:inset-x-0 group-data-[orientation=horizontal]/tabs:after:bottom-[-5px] group-data-[orientation=horizontal]/tabs:after:h-0.5 group-data-[orientation=vertical]/tabs:after:inset-y-0 group-data-[orientation=vertical]/tabs:after:-right-1 group-data-[orientation=vertical]/tabs:after:w-0.5 group-data-[variant=line]/tabs-list:data-[state=active]:after:opacity-100",
         className

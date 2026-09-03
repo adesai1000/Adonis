@@ -36,7 +36,6 @@ import {
 import { EmptyState, FieldError } from "@/components/common/bits"
 import { useDraft } from "@/lib/storage"
 import { fmt, fmtCompact } from "@/lib/calc"
-import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 import type { Meal } from "@/lib/types"
 
@@ -285,8 +284,11 @@ function MealCard({
               </Badge>
             )}
           </div>
-          <div className="text-xs text-muted-foreground">
-            {meal.serving || "-"}
+          <div className="text-xs text-ink-3 tabular-nums">
+            <span className="font-semibold text-foreground">
+              {fmtCompact(meal.calories)} kcal
+            </span>{" "}
+            · {meal.serving || "-"}
           </div>
         </div>
         <div className="flex shrink-0 gap-1">
@@ -308,8 +310,9 @@ function MealCard({
           </Button>
         </div>
       </div>
-      <div className="flex flex-wrap gap-1.5 tabular-nums">
-        <MacroStat strong value={`${fmtCompact(meal.calories)} kcal`} />
+      {/* fixed 4-up grid so the macros line up across cards; sodium gets a
+          wider column so "1,300 mg" fits */}
+      <div className="grid grid-cols-[1fr_1fr_1fr_1.45fr] gap-1.5 tabular-nums">
         <MacroStat label="P" value={`${fmtCompact(meal.protein)} g`} />
         <MacroStat label="C" value={`${fmtCompact(meal.carbs)} g`} />
         <MacroStat label="F" value={`${fmtCompact(meal.fat)} g`} />
@@ -319,27 +322,12 @@ function MealCard({
   )
 }
 
-/** Macro pill: `P 50 g`, or a strong ink pill for the kcal total. */
-function MacroStat({
-  label,
-  value,
-  strong,
-}: {
-  label?: string
-  value: string
-  strong?: boolean
-}) {
+/** One cell of the macro grid: `P 50 g`. */
+function MacroStat({ label, value }: { label: string; value: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs whitespace-nowrap",
-        strong ? "bg-foreground font-semibold text-background" : "bg-muted"
-      )}
-    >
-      {label && <span className="font-semibold text-ink-3">{label}</span>}
-      <span className={strong ? undefined : "font-semibold text-foreground"}>
-        {value}
-      </span>
+    <span className="flex min-w-0 items-baseline justify-center gap-1 rounded-full bg-muted px-1.5 py-1 text-[11px] leading-4 whitespace-nowrap">
+      <span className="font-semibold text-ink-3">{label}</span>
+      <span className="truncate font-semibold text-foreground">{value}</span>
     </span>
   )
 }
