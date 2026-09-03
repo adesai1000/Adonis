@@ -101,6 +101,7 @@
     rgba(227, 247, 235, 0.32)
   );
   --topbar-edge: rgba(255, 255, 255, 0.9);
+  --topbar-rim: rgba(15, 122, 56, 0.2);
   --pill-bg: rgba(255, 255, 255, 0.5);
   --pill-edge: rgba(255, 255, 255, 0.75);
 }
@@ -135,8 +136,8 @@
   --secondary-foreground: var(--ink-2);
   --muted: #252b26;
   --muted-foreground: var(--ink-3);
-  --accent: var(--green-tint);
-  --accent-foreground: var(--green-ink);
+  --accent: #2b322c;
+  --accent-foreground: var(--ink);
   --destructive: var(--red);
   --destructive-foreground: #101310;
   --success: var(--green);
@@ -168,7 +169,7 @@
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.6);
   --shadow-float: 0 2px 6px rgba(0, 0, 0, 0.5), 0 24px 48px -16px rgba(0, 0, 0, 0.7);
-  --shadow-glass: 0 12px 40px -8px rgba(29, 185, 84, 0.25);
+  --shadow-glass: 0 12px 40px -8px rgba(0, 0, 0, 0.6);
   --shadow-fab: 0 10px 24px -8px rgba(0, 0, 0, 0.7);
 
   /* on a pure-black canvas the cards need real lift to read as a layer */
@@ -177,15 +178,17 @@
     rgba(255, 255, 255, 0.13),
     rgba(255, 255, 255, 0.08)
   );
+  /* dark keeps every rim/tint neutral — the green reads as a haze on OLED */
   --glass-edge: rgba(255, 255, 255, 0.1);
-  --glass-rim: rgba(29, 185, 84, 0.22);
+  --glass-rim: rgba(255, 255, 255, 0.07);
   --topbar-bg: linear-gradient(
     115deg,
     rgba(255, 255, 255, 0.09),
-    rgba(255, 255, 255, 0.04) 48%,
-    rgba(29, 185, 84, 0.08)
+    rgba(255, 255, 255, 0.045) 48%,
+    rgba(255, 255, 255, 0.06)
   );
   --topbar-edge: rgba(255, 255, 255, 0.12);
+  --topbar-rim: rgba(255, 255, 255, 0.06);
   --pill-bg: rgba(255, 255, 255, 0.06);
   --pill-edge: rgba(255, 255, 255, 0.1);
 }
@@ -314,9 +317,15 @@
     box-shadow:
       inset 0 1px 0 var(--topbar-edge),
       inset 0 -1px 0 rgba(255, 255, 255, 0.35),
-      0 0 0 1px rgba(15, 122, 56, 0.2),
+      0 0 0 1px var(--topbar-rim),
       0 14px 40px -16px rgba(16, 19, 16, 0.22);
     transition: border-color 0.35s, box-shadow 0.35s;
+  }
+  /* Same shape as the topbar, but opaque: no backdrop blur behind the header. */
+  .topbar-solid {
+    background: var(--card);
+    border: 1px solid var(--line-strong);
+    box-shadow: var(--shadow-card);
   }
   /* the ice lights up green on hover — pointer devices only, so a tap on
      mobile doesn't leave the rim stuck green */
