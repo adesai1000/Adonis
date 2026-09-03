@@ -19,7 +19,10 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- "black", not "black-translucent": translucent makes iOS draw its own
+         blurred/separator material over the top edge of the app. Changing this
+         only takes effect after the PWA is removed and re-added to the home screen. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <meta name="apple-mobile-web-app-title" content="Adonis" />
   </head>
   <body>

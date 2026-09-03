@@ -73,23 +73,16 @@ export function TopNav() {
   )
 }
 
-/** Mobile: a floating frosted dock. The green rim only lights while a tab is pressed. */
+/** Mobile: a frosted dock pinned to the bottom edge. */
 export function BottomNav() {
   const { section, go } = useNavigate()
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.125rem)] z-40 md:hidden"
+      className="fixed inset-x-3 bottom-[env(safe-area-inset-bottom)] z-40 md:hidden"
     >
-      <div
-        className={cn(
-          "topbar-glass mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1 transition-[border-color,box-shadow] duration-200",
-          // neutral rim at rest…
-          "[box-shadow:inset_0_1px_0_var(--topbar-edge),0_14px_40px_-16px_rgba(16,19,16,0.22)]",
-          // …green only while a tab is being pressed
-          "has-[button:active]:border-green/60 has-[button:active]:[box-shadow:inset_0_1px_0_var(--topbar-edge),inset_0_0_0_1px_rgba(29,185,84,0.18),0_0_0_1px_rgba(29,185,84,0.35),0_16px_46px_-14px_rgba(29,185,84,0.42)]"
-        )}
-      >
+      {/* rim stays neutral at all times — no green flash on tap */}
+      <div className="topbar-glass mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1 [box-shadow:inset_0_1px_0_var(--topbar-edge),0_14px_40px_-16px_rgba(16,19,16,0.22)]">
         {NAV_ITEMS.map((item) => {
           const active = section === item.key
           const Icon = item.icon

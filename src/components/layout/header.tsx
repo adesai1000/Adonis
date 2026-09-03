@@ -45,17 +45,13 @@ function SyncBadge() {
   )
 }
 
-/**
- * Topbar: an opaque pill that floats over the page (no backdrop blur).
- * The sticky strip behind it is solid in dark, where the page has no mesh;
- * in light it stays transparent so the mesh runs unbroken behind the header.
- */
+/** Stickshift topbar: an icy frosted pill that floats over the page. */
 export function Header() {
   const { section, setSection } = useNav()
 
   return (
-    <div className="sticky top-0 z-30 px-3 pb-1 pt-safe md:px-4 dark:bg-background">
-      <header className="topbar-solid relative mx-auto mt-2 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-3 md:px-4 md:py-2.5">
+    <div className="sticky top-0 z-30 px-3 pb-1 pt-safe md:px-4">
+      <header className="topbar-glass glint relative mx-auto mt-5 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-6 md:px-4 md:py-2.5">
         <button
           type="button"
           onClick={() => {

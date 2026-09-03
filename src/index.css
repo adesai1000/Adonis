@@ -115,7 +115,8 @@
   --ink-3: #8d948a;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
-  --green-tint: rgba(29, 185, 84, 0.16);
+  /* chips stay neutral in dark; the green lives in the text, not the fill */
+  --green-tint: rgba(255, 255, 255, 0.07);
   --green-ink: #7be49c;
   --amber: #f0a24a;
   --amber-tint: rgba(240, 162, 74, 0.16);
