@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select"
 import { EmptyState, TrendIndicator } from "@/components/common/bits"
 import { cn } from "@/lib/utils"
+import { SlidingHighlight } from "@/components/ui/sliding-highlight"
 import type { CardKey, GraphTab, HomeSection } from "@/lib/types"
 import { useStore } from "@/store/store"
 import { CARD_TITLES, computeCardMetric } from "./home/metrics"
@@ -371,7 +372,8 @@ function GraphTabs({
   onSelect: (t: GraphTab) => void
 }) {
   return (
-    <div className="pill-surface inline-flex flex-wrap gap-0.5 rounded-full p-1">
+    <div className="pill-surface relative inline-flex flex-wrap gap-0.5 rounded-full p-1">
+      <SlidingHighlight selector="[aria-pressed=true]" />
       {tabs.map((tab) => {
         const isActive = tab === active
         return (
@@ -379,10 +381,11 @@ function GraphTabs({
             key={tab}
             type="button"
             onClick={() => onSelect(tab)}
+            aria-pressed={isActive}
             className={cn(
-              "rounded-full px-4 py-2 text-[13.5px] font-medium transition-[color,background-color] duration-200 active:scale-95",
+              "relative rounded-full px-4 py-2 text-[13.5px] font-medium transition-colors duration-200 active:scale-95",
               isActive
-                ? "bg-foreground text-background dark:border dark:border-white/15 dark:bg-white/10 dark:text-foreground dark:backdrop-blur-md"
+                ? "text-background dark:text-foreground"
                 : "text-ink-2 hover:text-foreground"
             )}
           >

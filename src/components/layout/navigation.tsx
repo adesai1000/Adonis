@@ -7,6 +7,7 @@ import {
   UtensilsCrossed,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
+import { SlidingHighlight } from "@/components/ui/sliding-highlight"
 import { useNav, type Section } from "@/store/nav"
 import { cn } from "@/lib/utils"
 
@@ -48,8 +49,9 @@ export function TopNav() {
   return (
     <nav
       aria-label="Primary"
-      className="pill-surface hidden items-center gap-0.5 rounded-full p-1 md:flex"
+      className="pill-surface relative hidden items-center gap-0.5 rounded-full p-1 md:flex"
     >
+      <SlidingHighlight selector='[aria-current="page"]' />
       {NAV_ITEMS.map((item) => {
         const active = section === item.key
         return (
@@ -59,9 +61,9 @@ export function TopNav() {
             onClick={() => go(item.key)}
             aria-current={active ? "page" : undefined}
             className={cn(
-              "rounded-full px-4 py-2 text-[13.5px] font-medium whitespace-nowrap transition-[color,background-color] duration-200",
+              "relative z-10 rounded-full px-4 py-2 text-[13.5px] font-medium whitespace-nowrap transition-colors duration-200",
               active
-                ? "bg-foreground text-background dark:border dark:border-white/15 dark:bg-white/10 dark:text-foreground dark:backdrop-blur-md"
+                ? "text-background dark:text-foreground"
                 : "text-ink-2 hover:text-foreground"
             )}
           >
@@ -82,7 +84,11 @@ export function BottomNav() {
       className="fixed inset-x-3 bottom-[env(safe-area-inset-bottom)] z-40 md:hidden"
     >
       {/* rim stays neutral at all times — no green flash on tap */}
-      <div className="topbar-glass mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1 [box-shadow:inset_0_1px_0_var(--topbar-edge),0_14px_40px_-16px_rgba(16,19,16,0.22)]">
+      <div className="topbar-glass relative mx-auto flex max-w-lg items-stretch justify-around rounded-[26px] px-1 py-1 [box-shadow:inset_0_1px_0_var(--topbar-edge),0_14px_40px_-16px_rgba(16,19,16,0.22)]">
+        <SlidingHighlight
+          selector='[aria-current="page"] > span:first-child'
+          className="dark:bg-white/12"
+        />
         {NAV_ITEMS.map((item) => {
           const active = section === item.key
           const Icon = item.icon
@@ -92,15 +98,10 @@ export function BottomNav() {
               onClick={() => go(item.key)}
               aria-label={item.label}
               aria-current={active ? "page" : undefined}
-              className="group flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 px-0.5"
+              className="group relative z-10 flex min-h-[3.5rem] flex-1 flex-col items-center justify-center gap-1 px-0.5"
             >
               <span
-                className={cn(
-                  "flex h-8 w-12 items-center justify-center rounded-full transition-[background-color,transform] duration-200 group-active:scale-90",
-                  active
-                    ? "bg-foreground dark:border dark:border-white/15 dark:bg-white/12 dark:backdrop-blur-md"
-                    : "bg-transparent"
-                )}
+                className="flex h-8 w-12 items-center justify-center rounded-full transition-transform duration-200 group-active:scale-90"
               >
                 <Icon
                   className={cn(

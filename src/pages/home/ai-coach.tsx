@@ -126,7 +126,7 @@ export function AICoach() {
             onChange={(e) => setDraftNote(e.target.value)}
             placeholder="e.g. I tweaked my shoulder this week, or I'm cutting for a wedding in a month…"
             disabled={loading}
-            className="min-h-16 resize-none text-sm"
+            className="min-h-0 resize-none px-4 py-3.5 text-sm leading-relaxed"
           />
           {noteHistory.length > 0 && (
             <p className="text-xs text-muted-foreground">

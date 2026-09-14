@@ -51,7 +51,7 @@ export function Header() {
 
   return (
     <div className="sticky top-0 z-30 px-3 pb-1 pt-safe md:px-4">
-      <header className="topbar-glass glint relative mx-auto mt-5 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-6 md:px-4 md:py-2.5">
+      <header className="topbar-glass relative mx-auto mt-5 flex max-w-[1720px] items-center justify-between gap-3 rounded-[22px] px-3 py-2 md:mt-6 md:px-4 md:py-2.5">
         <button
           type="button"
           onClick={() => {

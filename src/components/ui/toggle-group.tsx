@@ -6,6 +6,7 @@ import { ToggleGroup as ToggleGroupPrimitive } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 import { toggleVariants } from "@/components/ui/toggle"
+import { SlidingHighlight } from "@/components/ui/sliding-highlight"
 
 const ToggleGroupContext = React.createContext<
   VariantProps<typeof toggleVariants> & {
@@ -36,11 +37,14 @@ function ToggleGroup({
       data-size={size}
       data-spacing={spacing}
       className={cn(
-        "group/toggle-group pill-surface flex w-fit items-center gap-0.5 rounded-full p-1",
+        "group/toggle-group pill-surface relative flex w-fit items-center gap-0.5 rounded-full p-1",
         className
       )}
       {...props}
     >
+      {props.type === "single" && (
+        <SlidingHighlight selector='[data-slot="toggle-group-item"][data-state="on"]' />
+      )}
       <ToggleGroupContext.Provider value={{ variant, size, spacing }}>
         {children}
       </ToggleGroupContext.Provider>
