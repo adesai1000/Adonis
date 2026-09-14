@@ -107,12 +107,13 @@
 }
 
 .dark {
-  /* AMOLED black canvas; cards lift off it as the only lighter layer */
+  /* AMOLED black canvas; cards lift off it as the only lighter layer.
+     Every surface is a true neutral grey — no green bias anywhere in dark. */
   --ground: #000000;
   --canvas: #000000;
-  --ink: #f2f4ef;
-  --ink-2: #b7bdb3;
-  --ink-3: #8d948a;
+  --ink: #f2f2f2;
+  --ink-2: #b8b8b8;
+  --ink-3: #8e8e8e;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.14);
   /* chips stay neutral in dark; the green lives in the text, not the fill */
@@ -125,27 +126,27 @@
 
   --background: var(--canvas);
   --foreground: var(--ink);
-  --card: #1a1e1b;
+  --card: #1b1b1b;
   --card-foreground: var(--ink);
-  --popover: #1f2420;
+  --popover: #212121;
   --popover-foreground: var(--ink);
 
   --primary: var(--green);
-  --primary-foreground: #101310;
+  --primary-foreground: #000000;
 
-  --secondary: #252b26;
+  --secondary: #272727;
   --secondary-foreground: var(--ink-2);
-  --muted: #252b26;
+  --muted: #272727;
   --muted-foreground: var(--ink-3);
-  --accent: #2b322c;
+  --accent: #2e2e2e;
   --accent-foreground: var(--ink);
   --destructive: var(--red);
-  --destructive-foreground: #101310;
+  --destructive-foreground: #000000;
   --success: var(--green);
 
   --border: var(--line);
   --input: var(--line-strong);
-  --ring: var(--green);
+  --ring: rgba(255, 255, 255, 0.35);
 
   --chart-1: var(--green);
   --chart-2: #82dca6;
@@ -156,13 +157,13 @@
   --sidebar: var(--canvas);
   --sidebar-foreground: var(--ink);
   --sidebar-primary: var(--green);
-  --sidebar-primary-foreground: #101310;
+  --sidebar-primary-foreground: #000000;
   --sidebar-accent: var(--green-tint);
   --sidebar-accent-foreground: var(--green-ink);
   --sidebar-border: var(--line);
-  --sidebar-ring: var(--green);
+  --sidebar-ring: rgba(255, 255, 255, 0.35);
 
-  --heat-0: #1c211d;
+  --heat-0: #1e1e1e;
   --heat-1: #1d4a2e;
   --heat-2: #1f7a42;
   --heat-3: #29c264;
