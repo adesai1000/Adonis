@@ -8,7 +8,6 @@ import { Header } from "@/components/layout/header"
 import { BottomNav } from "@/components/layout/navigation"
 import { PageHead } from "@/components/layout/page-head"
 import { ResumeBanner } from "@/components/layout/resume-banner"
-import { QuickLogFab } from "@/components/layout/quick-log-fab"
 import { PullToRefresh } from "@/components/layout/pull-to-refresh"
 import HomePage from "@/pages/home"
 import LogPage from "@/pages/log"
@@ -52,7 +51,6 @@ function Shell() {
         </PullToRefresh>
       </main>
       <BottomNav />
-      {section === "home" && <QuickLogFab />}
       <Toaster
         position="bottom-center"
         offset={{ bottom: "28px" }}
