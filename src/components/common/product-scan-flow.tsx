@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from "react"
-import { Loader2, PackageSearch } from "lucide-react"
+import { Loader2, PackageSearch, Search } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import {
@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { fmtCompact } from "@/lib/calc"
@@ -19,7 +20,9 @@ import {
   productDisplayName,
   productMacros,
   productToMeal,
+  searchProducts,
   servingLabel,
+  type ProductSearchHit,
   type ScannedProduct,
   type ServingBasis,
 } from "@/lib/openfoodfacts"
@@ -32,26 +35,30 @@ const BarcodeScanner = lazy(() =>
   }))
 )
 
+/** How the flow starts: camera scan or a text search. */
+export type ProductLookupMode = "scan" | "search"
+
 type Step =
   | { kind: "closed" }
   | { kind: "scan" }
+  | { kind: "search" }
   | { kind: "lookup"; code: string }
   | { kind: "confirm"; product: ScannedProduct }
 
 /**
- * Scan → Open Food Facts lookup → serving-basis confirmation. Emits either a
- * meal already in the library carrying that barcode, or fresh meal data for
- * the caller to add. Drive it with `open`; it closes itself when done.
+ * Scan or search → Open Food Facts lookup → serving-basis confirmation. Emits
+ * either a meal already in the library carrying that barcode, or fresh meal
+ * data for the caller to add. Drive it with `mode`; it closes itself when done.
  */
 export function ProductScanFlow({
-  open,
+  mode,
   onOpenChange,
   meals,
   onExisting,
   onNew,
   confirmLabel,
 }: {
-  open: boolean
+  mode: ProductLookupMode | null
   onOpenChange: (open: boolean) => void
   meals: Meal[]
   /** A meal with this barcode is already in the library. */
@@ -63,8 +70,12 @@ export function ProductScanFlow({
   const [step, setStep] = useState<Step>({ kind: "closed" })
   const [basis, setBasis] = useState<ServingBasis>("serving")
 
-  // `open` from the parent starts the flow; internal steps take it from there.
-  const effective: Step = open ? (step.kind === "closed" ? { kind: "scan" } : step) : { kind: "closed" }
+  // `mode` from the parent starts the flow; internal steps take it from there.
+  const effective: Step = mode
+    ? step.kind === "closed"
+      ? { kind: mode }
+      : step
+    : { kind: "closed" }
 
   function close() {
     setStep({ kind: "closed" })
@@ -129,6 +140,12 @@ export function ProductScanFlow({
           />
         </Suspense>
       )}
+
+      <SearchDialog
+        open={effective.kind === "search"}
+        onClose={close}
+        onPick={(hit) => handleDetected(hit.code)}
+      />
 
       {/* Lookup spinner */}
       <Dialog
@@ -236,5 +253,144 @@ function Stat({ label, value }: { label: string; value: string }) {
       <p className="truncate text-sm font-semibold">{value}</p>
       <p className="text-[11px] text-muted-foreground">{label}</p>
     </div>
+  )
+}
+
+// ───────────────────────────── Search picker ─────────────────────────────
+type SearchState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "results"; hits: ProductSearchHit[]; query: string }
+  | { kind: "error"; message: string }
+
+function SearchDialog({
+  open,
+  onClose,
+  onPick,
+}: {
+  open: boolean
+  onClose: () => void
+  onPick: (hit: ProductSearchHit) => void
+}) {
+  const [query, setQuery] = useState("")
+  const [state, setState] = useState<SearchState>({ kind: "idle" })
+
+  async function run() {
+    const q = query.trim()
+    if (q.length < 2) return
+    setState({ kind: "loading" })
+    try {
+      const hits = await searchProducts(q)
+      setState({ kind: "results", hits, query: q })
+    } catch (e) {
+      setState({
+        kind: "error",
+        message:
+          navigator.onLine === false
+            ? "You're offline — search needs a connection."
+            : e instanceof Error
+              ? e.message
+              : "Search failed.",
+      })
+    }
+  }
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose()
+      }}
+    >
+      <DialogContent className="flex max-h-[85dvh] flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Search className="size-4" />
+            Search foods
+          </DialogTitle>
+          <DialogDescription>
+            Packaged products from Open Food Facts. Search by name or brand.
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="flex gap-2">
+          <Input
+            autoFocus
+            placeholder="e.g. Pure Protein bar"
+            className="h-11"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault()
+                run()
+              }
+            }}
+            enterKeyHint="search"
+          />
+          <Button
+            type="button"
+            className="h-11 shrink-0"
+            onClick={run}
+            disabled={query.trim().length < 2 || state.kind === "loading"}
+          >
+            {state.kind === "loading" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Search className="size-4" />
+            )}
+            Search
+          </Button>
+        </div>
+
+        <div className="-mx-2 min-h-0 flex-1 overflow-y-auto px-2">
+          {state.kind === "idle" && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Results show calories per 100 g. You'll pick the serving next.
+            </p>
+          )}
+          {state.kind === "loading" && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Searching…
+            </p>
+          )}
+          {state.kind === "error" && (
+            <p className="py-6 text-center text-sm text-red">{state.message}</p>
+          )}
+          {state.kind === "results" && state.hits.length === 0 && (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Nothing with nutrition data for "{state.query}". Try a brand name,
+              or scan the barcode.
+            </p>
+          )}
+          {state.kind === "results" && state.hits.length > 0 && (
+            <ul className="divide-y divide-line">
+              {state.hits.map((hit) => (
+                <li key={hit.code}>
+                  <button
+                    type="button"
+                    onClick={() => onPick(hit)}
+                    className="flex w-full items-center gap-3 rounded-[12px] px-2 py-2.5 text-left transition-colors hover:bg-accent/60 active:bg-accent"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium">{hit.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {[hit.brand, hit.quantity].filter(Boolean).join(" · ") || "\u00a0"}
+                      </p>
+                    </div>
+                    {hit.kcalPer100g != null && (
+                      <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                        {hit.kcalPer100g} kcal
+                        <span className="text-ink-3"> / 100 g</span>
+                      </span>
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

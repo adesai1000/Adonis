@@ -5,6 +5,8 @@ functions add the extras:
 
 - `api/sync.ts` – a tiny key/value store so the same data can be shared between
   your phone and computer using a shared "sync code".
+- `api/off-search.ts` – proxies Open Food Facts text search (the search service
+  isn't CORS-open) so "Search foods" works from the browser. No keys needed.
 - `api/keepalive.ts` – pinged once a day by a Vercel Cron Job (`vercel.json`) so
   the free Upstash database never goes idle long enough to be archived.
 

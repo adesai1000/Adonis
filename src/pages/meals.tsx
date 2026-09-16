@@ -34,7 +34,10 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EmptyState, FieldError } from "@/components/common/bits"
-import { ProductScanFlow } from "@/components/common/product-scan-flow"
+import {
+  ProductScanFlow,
+  type ProductLookupMode,
+} from "@/components/common/product-scan-flow"
 import { useDraft } from "@/lib/storage"
 import { fmt, fmtCompact } from "@/lib/calc"
 import { useStore } from "@/store/store"
@@ -96,7 +99,7 @@ export default function Page() {
   const [query, setQuery] = useState("")
   const [editor, setEditor] = useState<EditorState>({ mode: "closed" })
   const [pendingDelete, setPendingDelete] = useState<Meal | null>(null)
-  const [scanOpen, setScanOpen] = useState(false)
+  const [lookup, setLookup] = useState<ProductLookupMode | null>(null)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -132,10 +135,20 @@ export default function Page() {
           <Button
             variant="outline"
             className="h-11"
-            onClick={() => setScanOpen(true)}
+            onClick={() => setLookup("scan")}
+            aria-label="Scan a barcode"
           >
             <ScanBarcode className="size-4" />
             Scan
+          </Button>
+          <Button
+            variant="outline"
+            className="h-11"
+            onClick={() => setLookup("search")}
+            aria-label="Search Open Food Facts"
+          >
+            <Search className="size-4" />
+            Find
           </Button>
           <Button
             className="h-11 flex-1"
@@ -148,8 +161,10 @@ export default function Page() {
       </div>
 
       <ProductScanFlow
-        open={scanOpen}
-        onOpenChange={setScanOpen}
+        mode={lookup}
+        onOpenChange={(o) => {
+          if (!o) setLookup(null)
+        }}
         meals={meals}
         confirmLabel="Continue"
         onExisting={(meal) => {

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { Apple, ScanBarcode, UtensilsCrossed } from "lucide-react"
+import { Apple, ScanBarcode, Search, UtensilsCrossed } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,7 +9,10 @@ import { Separator } from "@/components/ui/separator"
 import { Combobox, type ComboOption } from "@/components/common/combobox"
 import { DateTimePicker } from "@/components/common/datetime-picker"
 import { EmptyState, FieldError, Stepper } from "@/components/common/bits"
-import { ProductScanFlow } from "@/components/common/product-scan-flow"
+import {
+  ProductScanFlow,
+  type ProductLookupMode,
+} from "@/components/common/product-scan-flow"
 import { fmt, isoNow, round1 } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
@@ -34,7 +37,7 @@ export function FoodTab() {
     "wt_draft_food",
     initialDraft()
   )
-  const [scanOpen, setScanOpen] = useState(false)
+  const [lookup, setLookup] = useState<ProductLookupMode | null>(null)
 
   // Keep an abandoned draft's date/time from going stale across visits —
   // always start a fresh visit to this tab at the current moment.
@@ -95,21 +98,34 @@ export function FoodTab() {
   }
 
   const scanButton = (
-    <Button
-      type="button"
-      variant="outline"
-      className="h-11 w-full"
-      onClick={() => setScanOpen(true)}
-    >
-      <ScanBarcode className="size-4" />
-      Scan a barcode
-    </Button>
+    <div className="grid grid-cols-2 gap-2">
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11"
+        onClick={() => setLookup("scan")}
+      >
+        <ScanBarcode className="size-4" />
+        Scan barcode
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        className="h-11"
+        onClick={() => setLookup("search")}
+      >
+        <Search className="size-4" />
+        Search foods
+      </Button>
+    </div>
   )
 
   const scanFlow = (
     <ProductScanFlow
-      open={scanOpen}
-      onOpenChange={setScanOpen}
+      mode={lookup}
+      onOpenChange={(o) => {
+        if (!o) setLookup(null)
+      }}
       meals={meals}
       confirmLabel="Add & select"
       onExisting={(m) => {

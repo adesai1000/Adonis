@@ -198,3 +198,34 @@ export function productToMeal(
     builtIn: false,
   }
 }
+
+// ───────────────────────────── Text search ─────────────────────────────
+/** One row of the search picker; full nutrition comes from lookupProduct(code). */
+export interface ProductSearchHit {
+  code: string
+  name: string
+  brand?: string
+  quantity?: string
+  kcalPer100g?: number
+}
+
+/** Search by name via our proxy (the search service isn't CORS-open). */
+export async function searchProducts(query: string): Promise<ProductSearchHit[]> {
+  const q = query.trim()
+  if (q.length < 2) return []
+  const res = await fetch(`/api/off-search?q=${encodeURIComponent(q)}`, {
+    headers: { Accept: "application/json" },
+  })
+  if (!res.ok) {
+    let msg = `Search failed (${res.status}).`
+    try {
+      const j = (await res.json()) as { error?: string }
+      if (j.error) msg = j.error
+    } catch {
+      /* keep default */
+    }
+    throw new Error(msg)
+  }
+  const json = (await res.json()) as { hits?: ProductSearchHit[] }
+  return json.hits ?? []
+}

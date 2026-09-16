@@ -2,6 +2,7 @@ import path from "path"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
 import { defineConfig, type Plugin } from "vite"
+import { MIN_QUERY_LENGTH, searchOpenFoodFacts } from "./api/_lib/off-search"
 
 // Dev-only stand-in for the /api/sync serverless function. Keeps blobs in
 // memory (per dev-server lifetime) so device sync can be exercised locally.
@@ -39,9 +40,33 @@ function devSyncPlugin(): Plugin {
   }
 }
 
+// Dev-only stand-in for api/off-search.ts: same helper, same JSON shape.
+function devOffSearchPlugin(): Plugin {
+  return {
+    name: "dev-off-search",
+    configureServer(server) {
+      server.middlewares.use("/api/off-search", async (req, res) => {
+        res.setHeader("content-type", "application/json")
+        const q = (new URL(req.url || "", "http://localhost").searchParams.get("q") || "").trim()
+        if (q.length < MIN_QUERY_LENGTH) {
+          res.statusCode = 400
+          res.end(JSON.stringify({ error: `Type at least ${MIN_QUERY_LENGTH} characters.` }))
+          return
+        }
+        try {
+          res.end(JSON.stringify({ hits: await searchOpenFoodFacts(q) }))
+        } catch (e) {
+          res.statusCode = 502
+          res.end(JSON.stringify({ error: e instanceof Error ? e.message : "Search failed." }))
+        }
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss(), devSyncPlugin()],
+  plugins: [react(), tailwindcss(), devSyncPlugin(), devOffSearchPlugin()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
