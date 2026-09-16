@@ -37,10 +37,18 @@ function SyncBadge() {
     },
   }[phase]
 
+  // The phone header has no room next to the weight meter: hide the badge
+  // there, except a failure, which shows as just its icon.
   return (
-    <div className="pill-surface flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold duration-200 animate-in fade-in-0 zoom-in-95">
+    <div
+      className={cn(
+        "pill-surface items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold duration-200 animate-in fade-in-0 zoom-in-95",
+        phase === "error" ? "flex" : "hidden md:flex"
+      )}
+      title={map.text}
+    >
       {map.icon}
-      <span className={cn(map.cls)}>{map.text}</span>
+      <span className={cn(map.cls, "hidden md:inline")}>{map.text}</span>
     </div>
   )
 }
