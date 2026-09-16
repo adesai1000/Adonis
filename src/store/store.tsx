@@ -68,11 +68,17 @@ function normalizeUiPrefs(p: UiPrefs): UiPrefs {
     if (p.graphTabVisibility[t] !== undefined)
       graphTabVisibility[t] = p.graphTabVisibility[t]
   }
+  // Sections added after the user first saved prefs slot in at their default
+  // position too, rather than landing at the bottom of the page.
   const existingHomeOrder = p.homeSectionOrder ?? []
-  const homeSectionOrder = [
-    ...existingHomeOrder.filter((k) => ALL_HOME_SECTIONS.includes(k)),
-    ...ALL_HOME_SECTIONS.filter((k) => !existingHomeOrder.includes(k)),
-  ]
+  const homeSectionOrder = existingHomeOrder.filter((k) =>
+    ALL_HOME_SECTIONS.includes(k)
+  )
+  ALL_HOME_SECTIONS.forEach((k, i) => {
+    if (!homeSectionOrder.includes(k)) {
+      homeSectionOrder.splice(Math.min(i, homeSectionOrder.length), 0, k)
+    }
+  })
   return {
     cardOrder,
     cardVisibility,
