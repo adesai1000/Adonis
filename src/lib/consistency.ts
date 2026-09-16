@@ -17,7 +17,8 @@ import type { CardioEntry, FoodEntry, SleepEntry, WorkoutSession } from "./types
  *   one     – one of food / sleep / workout
  *   two     – two of the three (typically food + sleep on a rest day)
  *   diamond – food + sleep + a workout, or food + sleep on a weekend
- *             (weekends are rest days, so that's the full set)
+ *             (weekends are rest days, so that's the full set); logging
+ *             steps as well marks the day (`steps`) for the warm stone
  *   future  – hasn't happened yet (hollow)
  *   before  – before the tracking start date (faint, so the start reads as a boundary)
  */
@@ -113,15 +114,18 @@ export function buildConsistency(
   const gridEnd = startOfDay(endOfWeek(rangeEnd, WEEK))
 
   const foodDays = new Set(input.foodLog.map((e) => dateKey(e.datetime)))
+  // A workout is a lifting session or real cardio. A step count on its own
+  // is not a workout — it only upgrades an already complete day.
   const workoutDays = new Set<string>()
+  const stepDays = new Set<string>()
   for (const e of input.workoutLog) workoutDays.add(dateKey(e.datetime))
-  for (const e of input.cardioLog) workoutDays.add(dateKey(e.datetime))
+  for (const e of input.cardioLog) {
+    const isSteps = e.activity === "Steps" || ((e.steps ?? 0) > 0 && !(e.durationSec > 0))
+    if (isSteps) stepDays.add(dateKey(e.datetime))
+    else workoutDays.add(dateKey(e.datetime))
+  }
   // Sleep counts for the day it ends (last night → today).
   const sleepDays = new Set(input.sleepLog.map(sleepEndsOn))
-  const stepDays = new Set<string>()
-  for (const e of input.cardioLog) {
-    if (e.activity === "Steps" || (e.steps ?? 0) > 0) stepDays.add(dateKey(e.datetime))
-  }
 
   const todayKey = format(today, "yyyy-MM-dd")
   const days: ConsistencyDay[] = []
