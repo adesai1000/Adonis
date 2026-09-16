@@ -22,7 +22,7 @@ const FORMATS = [
   BarcodeFormat.QR_CODE,
 ]
 
-type CamState = "starting" | "live" | "denied" | "unavailable"
+type CamState = "starting" | "live" | "stalled" | "denied" | "unavailable"
 
 /**
  * Camera barcode scanner in a dialog. Fires `onDetected` once with the first
@@ -108,10 +108,17 @@ export function BarcodeScanner({
   )
 }
 
-/** The live viewfinder. Starts the camera on mount, releases it on unmount. */
+/**
+ * The live viewfinder. Owns the camera stream itself rather than letting ZXing
+ * drive the <video>, because iOS is picky: it wants the muted/playsinline
+ * attributes on the element, may refuse play() outside a user gesture (Low
+ * Power Mode), and ends the track when the app is backgrounded. We watch for
+ * frames actually arriving and offer a tap-to-start when they don't.
+ */
 function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [cam, setCam] = useState<CamState>("starting")
+  const [attempt, setAttempt] = useState(0)
   const onDetectedRef = useRef(onDetected)
   onDetectedRef.current = onDetected
 
@@ -121,6 +128,13 @@ function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
       setCam("unavailable")
       return
     }
+    setCam("starting")
+
+    // React sets these as properties only; iOS checks the attributes.
+    video.muted = true
+    video.setAttribute("muted", "")
+    video.setAttribute("playsinline", "")
+    video.setAttribute("autoplay", "")
 
     const hints = new Map()
     hints.set(DecodeHintType.POSSIBLE_FORMATS, FORMATS)
@@ -129,32 +143,28 @@ function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
       delayBetweenScanAttempts: 120,
     })
 
-    let controls: IScannerControls | null = null
     let cancelled = false
     let fired = false
+    let stream: MediaStream | null = null
+    let controls: IScannerControls | null = null
+    let stallTimer = 0
 
-    reader
-      .decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } }, audio: false },
-        video,
-        (result) => {
-          if (!result || fired || cancelled) return
-          const text = result.getText().trim()
-          if (!text) return
-          fired = true
-          controls?.stop()
-          onDetectedRef.current(text)
-        }
-      )
-      .then((c) => {
-        if (cancelled) {
-          c.stop()
-          return
-        }
-        controls = c
-        setCam("live")
-      })
-      .catch((err: unknown) => {
+    const stopStream = () => {
+      stream?.getTracks().forEach((t) => t.stop())
+      stream = null
+    }
+
+    async function start() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: { ideal: "environment" },
+            width: { ideal: 1280 },
+            height: { ideal: 720 },
+          },
+          audio: false,
+        })
+      } catch (err: unknown) {
         if (cancelled) return
         const name = err instanceof Error ? err.name : ""
         setCam(
@@ -162,17 +172,74 @@ function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
             ? "denied"
             : "unavailable"
         )
+        return
+      }
+      if (cancelled || !video) {
+        stopStream()
+        return
+      }
+
+      // iOS ends the track when the app goes to the background; come back
+      // with a fresh stream instead of a frozen frame.
+      const track = stream.getVideoTracks()[0]
+      track?.addEventListener("ended", () => {
+        if (!cancelled) setAttempt((a) => a + 1)
       })
+
+      video.srcObject = stream
+      try {
+        await video.play()
+      } catch {
+        // Autoplay refused (Low Power Mode etc.) — the tap-to-start button
+        // calls play() from a real gesture.
+      }
+      if (cancelled) return
+
+      // "Playing" alone isn't proof on iOS; wait for real frames.
+      stallTimer = window.setTimeout(() => {
+        if (cancelled) return
+        if (video.paused || video.videoWidth === 0) setCam("stalled")
+      }, 2500)
+
+      try {
+        controls = await reader.decodeFromVideoElement(video, (result) => {
+          if (!result || fired || cancelled) return
+          const text = result.getText().trim()
+          if (!text) return
+          fired = true
+          controls?.stop()
+          onDetectedRef.current(text)
+        })
+        if (cancelled) controls.stop()
+      } catch {
+        if (!cancelled) setCam("stalled")
+      }
+    }
+
+    start()
 
     return () => {
       cancelled = true
+      window.clearTimeout(stallTimer)
       controls?.stop()
-      // Belt and braces: release the stream even if ZXing didn't get to.
-      const stream = video.srcObject as MediaStream | null
-      stream?.getTracks().forEach((t) => t.stop())
+      stopStream()
       video.srcObject = null
     }
-  }, [])
+  }, [attempt])
+
+  /** Runs inside a genuine tap, which is what iOS wants for play(). */
+  function tapToStart() {
+    const video = videoRef.current
+    if (!video) return
+    if (video.srcObject) {
+      video
+        .play()
+        .then(() => setCam("live"))
+        .catch(() => setAttempt((a) => a + 1))
+    } else {
+      setAttempt((a) => a + 1)
+    }
+  }
 
   return (
     <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[18px] bg-black sm:aspect-[4/3]">
@@ -182,11 +249,12 @@ function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
         muted
         playsInline
         autoPlay
+        onPlaying={() => setCam("live")}
       />
       {cam === "live" && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-[12%] top-1/2 h-[38%] -translate-y-1/2 rounded-[14px] border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+          className="pointer-events-none absolute inset-x-[12%] top-1/2 h-[38%] -translate-y-1/2 rounded-[14px] border-2 border-white/80"
         />
       )}
       {cam !== "live" && (
@@ -196,6 +264,17 @@ function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
               <Camera className="size-4 animate-pulse" />
               Starting camera…
             </span>
+          )}
+          {cam === "stalled" && (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 border-white/40 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+              onClick={tapToStart}
+            >
+              <Camera className="size-4" />
+              Tap to start camera
+            </Button>
           )}
           {cam === "denied" && (
             <span>
