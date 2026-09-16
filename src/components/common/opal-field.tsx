@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react"
+import { useEffect, useMemo, useRef } from "react"
 import { OPAL_FRAG, OPAL_VERT } from "@/lib/opal-shader"
 
 export interface OpalGem {
@@ -27,8 +27,13 @@ interface GemState {
 /** Spring constants for the lean toward the cursor (per frame at 60 Hz). */
 const STIFF = 0.09
 const DAMP = 0.74
-/** Draw area around each stone, as a fraction of its size, for the halo. */
-const PAD = 0.9
+/**
+ * Draw area around each stone, as a fraction of its size. The demo page
+ * frames one stone in a square canvas where the stone spans ~45% of the
+ * width; this pad reproduces that framing so a tracker stone looks exactly
+ * like the demo, just smaller.
+ */
+const PAD = 0.6
 
 /**
  * One WebGL canvas that renders every gem in `gems` in its own cell. Idle it
@@ -215,7 +220,8 @@ export function OpalField({
         gl.uniform2f(u.rippleAt, st.rippleAt[0], st.rippleAt[1])
         gl.uniform1f(u.birth, Math.max(0, (now - mountedAt - g.delayMs) / 1000))
         gl.uniform1f(u.px, 2 / vs)
-        gl.uniform1f(u.detail, Math.max(0.3, Math.min(1, g.size / 140)))
+        // identical material to /opal.html at every size
+        gl.uniform1f(u.detail, 1.0)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       }
       if (!reduceMotion) raf = requestAnimationFrame(frame)
@@ -309,5 +315,38 @@ export function OpalField({
       />
       {children}
     </>
+  )
+}
+
+/**
+ * One stone on its own canvas, exactly as /opal.html renders it: same
+ * shader, same framing, same motion. `size` is the box in CSS px.
+ */
+export function Opal({
+  size,
+  tier,
+  seed = 4.2,
+  className,
+}: {
+  size: number
+  tier: 1 | 2
+  seed?: number
+  className?: string
+}) {
+  const gems = useMemo<OpalGem[]>(
+    () => [{ x: 0, y: 0, size, tier, seed, delayMs: 0 }],
+    [size, tier, seed]
+  )
+  return (
+    <span
+      className={className}
+      style={{ position: "relative", display: "inline-block", width: size, height: size }}
+    >
+      <OpalField gems={gems} width={size} height={size}>
+        <span className="gem gem-fallback gem-static">
+          <span className="gem-body" />
+        </span>
+      </OpalField>
+    </span>
   )
 }

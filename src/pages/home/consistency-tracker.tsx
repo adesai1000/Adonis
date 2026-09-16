@@ -10,7 +10,7 @@ import {
 } from "@/lib/consistency"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
-import { OpalField, type OpalGem } from "@/components/common/opal-field"
+import { Opal, OpalField, type OpalGem } from "@/components/common/opal-field"
 
 /** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
@@ -74,7 +74,7 @@ function parseDate(value: string): Date | null {
 }
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""]
-const TILE_SIZE = 28
+const TILE_SIZE = 30
 const GAP = 6
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
@@ -302,19 +302,7 @@ export function ConsistencyTracker() {
   )
 }
 
-/** A single stone for the legend, on its own tiny field. */
+/** A single stone for the legend — the same component as the demo stone. */
 function LegendStone({ tier }: { tier: 1 | 2 }) {
-  const gems = useMemo<OpalGem[]>(
-    () => [{ x: 0, y: 0, size: 22, tier, seed: tier * 17, delayMs: 300 * tier }],
-    [tier]
-  )
-  return (
-    <span className="relative inline-block size-[22px] align-middle">
-      <OpalField gems={gems} width={22} height={22}>
-        <span className="gem gem-fallback gem-static">
-          <span className="gem-body" />
-        </span>
-      </OpalField>
-    </span>
-  )
+  return <Opal size={24} tier={tier} seed={tier * 17} className="align-middle" />
 }
