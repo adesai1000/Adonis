@@ -27,6 +27,7 @@ uniform float u_ripple;   // seconds since tap, < 0 when idle
 uniform vec2  u_rippleAt; // tap point in gem uv, -1..1
 uniform float u_birth;    // seconds since mount (light sweep)
 uniform float u_px;       // one device pixel in uv units, for edge AA
+uniform float u_detail;   // 1 at demo size, down to ~0.3 for tracker tiles
 
 // ── 3D simplex noise (Ashima Arts / Stefan Gustavson, MIT) ──
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -177,7 +178,7 @@ void main() {
 
   if (!hit) {
     // halo: light leaking into the dark around the stone
-    float glow = exp(-nearest * 8.0) * (0.3 + 0.9 * ripHalo);
+    float glow = exp(-nearest * 8.0) * (mix(0.5, 0.3, u_detail) + 0.9 * ripHalo);
     glow *= 0.85 + 0.15 * snoise(vec3(uv * 3.0, t * 0.4));
     gl_FragColor = vec4(haloTint * glow, glow);   // premultiplied
     return;
@@ -202,42 +203,49 @@ void main() {
   // thin-film interference: film thickness varies across the stone (noise),
   // phase depends on viewing angle; sample per channel with a slight offset
   // for chromatic aberration
+  // small stones get coarser, punchier colour so the play still reads
+  float fq = mix(0.5, 1.0, u_detail);
   vec3 np = gp + vec3(0.0, 0.0, t * 0.035);
-  float thick = 0.5 + 0.5 * fbm(np * 1.9 + u_seed);
+  float thick = 0.5 + 0.5 * fbm(np * 1.9 * fq + u_seed);
   float phase = thick * 1.5 + (1.0 - NoV) * 1.2 + warmth * 0.45 + rip * 0.35;
   vec3 irid = vec3(pal(phase + 0.04).r, pal(phase).g, pal(phase - 0.04).b);
+  // small stones: richer colour, since there are no pixels for subtlety
+  float sat = mix(1.55, 1.0, u_detail);
+  irid = mix(vec3(dot(irid, vec3(0.333))), irid, sat);
 
   // a second colour layer seen deeper inside the stone (offset along the
   // view direction) gives the flashes parallax and depth
   vec3 deep = gp + rd * 0.28;
-  float thick2 = 0.5 + 0.5 * fbm(deep * 2.6 - u_seed * 1.3 + vec3(t * 0.02));
+  float thick2 = 0.5 + 0.5 * fbm(deep * 2.6 * fq - u_seed * 1.3 + vec3(t * 0.02));
   vec3 irid2 = pal(thick2 * 1.5 + 0.35 + (1.0 - NoV) * 0.6 + warmth * 0.45);
 
   // play-of-colour: large flowing cells, plus vein-like flow lines where
   // the colour bands meet, like the streaks in a crystal opal
-  float cells = smoothstep(-0.25, 0.3, fbm(gp * 1.45 + u_seed * 2.0));
-  float veins = smoothstep(0.86, 0.985, 1.0 - abs(snoise(gp * 3.6 + u_seed + vec3(0.0, t * 0.03, 0.0))));
-  float cells2 = smoothstep(-0.15, 0.35, fbm(deep * 2.1 + 9.0));
+  float cells = smoothstep(mix(-0.5, -0.25, u_detail), mix(0.1, 0.3, u_detail), fbm(gp * 1.45 * fq + u_seed * 2.0));
+  float veins = smoothstep(0.86, 0.985, 1.0 - abs(snoise(gp * 3.6 * fq + u_seed + vec3(0.0, t * 0.03, 0.0))));
+  float cells2 = smoothstep(-0.15, 0.35, fbm(deep * 2.1 * fq + 9.0));
   // flashes strengthen as the surface turns away from the eye
   float tilt = 0.7 + 0.6 * pow(1.0 - NoV, 1.4);
 
   // glassy body: translucent, faintly milky, lit from within
   vec3 body = mix(vec3(0.84, 0.90, 0.97), vec3(0.97, 0.91, 0.82), warmth);
-  vec3 col = body * (0.42 + 0.45 * diff);
+  vec3 col = body * (0.42 + 0.45 * diff) * mix(0.75, 1.0, u_detail);
   col = mix(col, irid2 * (0.7 + 0.35 * diff), cells2 * 0.7 * tilt);    // deep layer
-  col = mix(col, irid * (0.95 + 0.4 * diff), clamp(cells * 0.9 * tilt, 0.0, 1.0)); // surface layer
+  // small stones: colour everywhere, a touch darker so it doesn't wash to white
+  col = mix(col, irid * mix(0.72, 0.95 + 0.4 * diff, u_detail), clamp(cells * mix(1.2, 0.9, u_detail) * tilt, 0.0, 1.0)); // surface layer
   col += irid * veins * 0.22 * tilt;                                        // flow lines
   col = mix(col, irid, 0.3 * F);                                            // grazing wash
   // milky haze over everything, thinner where the stone is thickest
-  col = mix(col, vec3(0.94, 0.96, 0.99), 0.12 * (1.0 - NoV) + 0.12);
+  col = mix(col, vec3(0.94, 0.96, 0.99), (0.12 * (1.0 - NoV) + 0.12) * u_detail);
 
   // glass: a broad soft window reflection up-left, then two sharp speculars
   vec3 Lw = normalize(vec3(-0.35, 0.6, 0.85));
-  float windowR = pow(max(dot(reflect(-Lw, n), v), 0.0), 7.0) * 0.32;
+  float hl = mix(0.4, 1.0, u_detail);          // highlights shrink with the stone
+  float windowR = pow(max(dot(reflect(-Lw, n), v), 0.0), 7.0) * 0.32 * hl;
   col += vec3(1.0) * windowR;
-  col += vec3(1.0) * spec1 * 1.2 + vec3(0.95, 0.97, 1.0) * spec2;
+  col += (vec3(1.0) * spec1 * 1.2 + vec3(0.95, 0.97, 1.0) * spec2) * hl;
   col += haloTint * rim * 0.45;
-  col += F * mix(vec3(0.8, 0.9, 1.0), warm, warmth) * 0.3;
+  col += F * mix(vec3(0.8, 0.9, 1.0), warm, warmth) * 0.3 * hl;
   col += rip * 0.4 + sweep * 0.45;
   col += haloTint * 0.06 * (1.0 - NoV);                                     // inner glow
 

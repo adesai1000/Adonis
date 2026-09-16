@@ -74,8 +74,8 @@ function parseDate(value: string): Date | null {
 }
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""]
-const TILE_SIZE = 22
-const GAP = 5
+const TILE_SIZE = 28
+const GAP = 6
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
 const FUTURE_PEEK_WEEKS = 3
@@ -305,12 +305,12 @@ export function ConsistencyTracker() {
 /** A single stone for the legend, on its own tiny field. */
 function LegendStone({ tier }: { tier: 1 | 2 }) {
   const gems = useMemo<OpalGem[]>(
-    () => [{ x: 0, y: 0, size: 18, tier, seed: tier * 17, delayMs: 300 * tier }],
+    () => [{ x: 0, y: 0, size: 22, tier, seed: tier * 17, delayMs: 300 * tier }],
     [tier]
   )
   return (
-    <span className="relative inline-block size-[18px] align-middle">
-      <OpalField gems={gems} width={18} height={18}>
+    <span className="relative inline-block size-[22px] align-middle">
+      <OpalField gems={gems} width={22} height={22}>
         <span className="gem gem-fallback gem-static">
           <span className="gem-body" />
         </span>

@@ -118,6 +118,7 @@ export function OpalField({
       rippleAt: U("u_rippleAt"),
       birth: U("u_birth"),
       px: U("u_px"),
+      detail: U("u_detail"),
     }
     gl.disable(gl.DEPTH_TEST)
     gl.enable(gl.BLEND)
@@ -204,6 +205,7 @@ export function OpalField({
         gl.uniform2f(u.rippleAt, st.rippleAt[0], st.rippleAt[1])
         gl.uniform1f(u.birth, Math.max(0, (now - mountedAt - g.delayMs) / 1000))
         gl.uniform1f(u.px, 2 / vs)
+        gl.uniform1f(u.detail, Math.max(0.3, Math.min(1, g.size / 140)))
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
       }
       if (!reduceMotion) raf = requestAnimationFrame(frame)
