@@ -6,7 +6,10 @@ import {
   Droplet,
   Dumbbell,
   Flame,
+  Gauge,
+  HeartPulse,
   LineChart as LineChartIcon,
+  Moon,
   Repeat,
   Scale,
   Soup,
@@ -49,9 +52,13 @@ import {
 } from "./home/graph-data"
 import { ManageCards } from "./home/manage-cards"
 import { ConsistencyTracker } from "./home/consistency-tracker"
+import { ReadinessSection } from "./home/readiness"
 
 const CARD_ICONS: Record<CardKey, React.ReactNode> = {
   strain: <Zap className="size-4" />,
+  recovery: <HeartPulse className="size-4" />,
+  readiness: <Gauge className="size-4" />,
+  sleep: <Moon className="size-4" />,
   volume: <Dumbbell className="size-4" />,
   reps: <Repeat className="size-4" />,
   calories: <Flame className="size-4" />,
@@ -81,6 +88,7 @@ export default function Page() {
     cardioLog,
     weightLog,
     foodLog,
+    sleepLog,
     settings,
     uiPrefs,
     updateUiPrefs,
@@ -88,8 +96,8 @@ export default function Page() {
 
   // ── trend card metrics ──
   const metricData = useMemo(
-    () => ({ workoutLog, cardioLog, weightLog, foodLog, settings }),
-    [workoutLog, cardioLog, weightLog, foodLog, settings]
+    () => ({ workoutLog, cardioLog, weightLog, foodLog, sleepLog, settings }),
+    [workoutLog, cardioLog, weightLog, foodLog, sleepLog, settings]
   )
 
   const visibleCards = uiPrefs.cardOrder.filter(
@@ -347,6 +355,7 @@ export default function Page() {
 
   const SECTION_RENDERERS: Record<HomeSection, () => React.ReactNode> = {
     cards: renderCardsSection,
+    readiness: () => <ReadinessSection />,
     graph: renderGraphSection,
     tracker: () => <ConsistencyTracker />,
   }

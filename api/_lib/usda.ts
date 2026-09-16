@@ -6,6 +6,7 @@
 // nutrition (SR Legacy / Foundation) plus a large US branded database that is
 // searchable by UPC.
 import type { FoodMacros, FoodProduct, FoodSearchHit } from "./food-types"
+import { plausiblePer100g } from "./food-text"
 
 const API = "https://api.nal.usda.gov/fdc/v1/foods/search"
 
@@ -98,7 +99,7 @@ function isGeneric(food: FdcFood): boolean {
 
 function toProduct(food: FdcFood): FoodProduct | null {
   const per100g = macros(food)
-  if (!per100g || !food.fdcId) return null
+  if (!per100g || !food.fdcId || !plausiblePer100g(per100g)) return null
   const generic = isGeneric(food)
   const rawName = (food.description || "").trim()
   const name = generic ? rawName : titleCase(rawName)

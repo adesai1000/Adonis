@@ -227,6 +227,7 @@ export const defaultSettings: Settings = {
   distanceUnit: "miles",
   trendRange: 7,
   trackingStartDate: "",
+  sleepGoalHours: 8,
 }
 
 export const defaultUiPrefs: UiPrefs = {
@@ -234,6 +235,9 @@ export const defaultUiPrefs: UiPrefs = {
     "calories",
     "protein",
     "strain",
+    "readiness",
+    "recovery",
+    "sleep",
     "volume",
     "bodyweight",
     "reps",
@@ -246,6 +250,9 @@ export const defaultUiPrefs: UiPrefs = {
     calories: true,
     protein: true,
     strain: true,
+    readiness: true,
+    recovery: false,
+    sleep: true,
     volume: true,
     bodyweight: true,
     reps: false,
@@ -256,5 +263,5 @@ export const defaultUiPrefs: UiPrefs = {
   },
   graphTabOrder: ["bodyweight", "calories", "protein"],
   graphTabVisibility: { bodyweight: true, calories: true, protein: true },
-  homeSectionOrder: ["cards", "graph", "tracker"],
+  homeSectionOrder: ["cards", "readiness", "graph", "tracker"],
 }

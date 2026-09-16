@@ -189,6 +189,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     store.workoutLog,
     store.cardioLog,
     store.weightLog,
+    store.sleepLog,
     store.exercises,
     store.routines,
     store.settings,

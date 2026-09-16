@@ -15,7 +15,8 @@ const FIELDS = [
   "nutriments",
 ].join(",")
 
-import type { FoodSearchHit } from "./food-types"
+import type { FoodMacros, FoodSearchHit } from "./food-types"
+import { plausiblePer100g, tidyName } from "./food-text"
 
 export const MIN_QUERY_LENGTH = 2
 export const MAX_RESULTS = 25
@@ -70,21 +71,29 @@ export async function searchOpenFoodFacts(
     const name = (h.product_name_en || h.product_name || "").trim()
     if (!code || !name || seen.has(code)) continue
     const n = h.nutriments ?? {}
-    // Only useful if there's something to log.
+    // Only useful if there's something to log, and only if it's believable.
     const kcal = num(n["energy-kcal_100g"])
+    const macros: FoodMacros = {
+      calories: kcal ?? 0,
+      protein: num(n["proteins_100g"]) ?? 0,
+      carbs: num(n["carbohydrates_100g"]) ?? 0,
+      fat: num(n["fat_100g"]) ?? 0,
+      sodium: (num(n["sodium_100g"]) ?? 0) * 1000,
+    }
     const hasMacros =
       kcal != null ||
       num(n["proteins_100g"]) != null ||
       num(n["carbohydrates_100g"]) != null ||
       num(n["fat_100g"]) != null
-    if (!hasMacros) continue
+    if (!hasMacros || !plausiblePer100g(macros)) continue
     seen.add(code)
+    const brand = firstBrand(h.brands, name)
     hits.push({
       source: "off",
       sourceId: code,
       barcode: code,
-      name,
-      brand: firstBrand(h.brands, name),
+      name: tidyName(name),
+      brand: brand ? tidyName(brand) : undefined,
       quantity: h.quantity?.trim() || undefined,
       kcalPer100g: kcal != null ? Math.round(kcal) : undefined,
       kind: "packaged",

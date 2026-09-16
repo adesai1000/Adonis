@@ -8,6 +8,7 @@ import {
   Download,
   Dumbbell,
   HeartPulse,
+  Moon,
   Scale,
   Trash2,
   UtensilsCrossed,
@@ -61,6 +62,11 @@ import {
   strainBreakdown,
   type StrainZone,
 } from "@/lib/strain"
+import {
+  readinessForDay,
+  sleepForDay,
+  type ReadinessZone,
+} from "@/lib/recovery"
 import type {
   CardioEntry,
   DistanceUnit,
@@ -68,6 +74,8 @@ import type {
   WeightEntry,
   WeightUnit,
   WorkoutSession,
+  Settings,
+  SleepEntry,
 } from "@/lib/types"
 import { toast } from "sonner"
 
@@ -191,16 +199,34 @@ const ZONE_TEXT: Record<StrainZone, string> = {
   allout: "text-red",
 }
 
-/** Macro totals and strain for the selected day, leading the page. */
+const READY_TEXT: Record<ReadinessZone, string> = {
+  push: "text-green-ink",
+  train: "text-green-ink",
+  easy: "text-amber",
+  rest: "text-red",
+}
+
+interface Tile {
+  label: string
+  value: string
+  sub?: string
+  cls?: string
+}
+
+/** Macro totals, then strain / sleep / recovery / readiness, leading the day. */
 function DaySummary({
   food,
   workoutLog,
   cardioLog,
+  sleepLog,
+  settings,
   day,
 }: {
   food: FoodEntry[]
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
+  sleepLog: SleepEntry[]
+  settings: Settings
   day: string
 }) {
   const totals = useMemo(() => sumMacros(food), [food])
@@ -208,36 +234,65 @@ function DaySummary({
     () => strainBreakdown(workoutLog, cardioLog, day),
     [workoutLog, cardioLog, day]
   )
+  const sleep = useMemo(() => sleepForDay(sleepLog, day), [sleepLog, day])
+  const ready = useMemo(
+    () => readinessForDay({ sleepLog, workoutLog, cardioLog, foodLog: food, settings }, day),
+    [sleepLog, workoutLog, cardioLog, food, settings, day]
+  )
   const hasFood = food.length > 0
   const trained = strain.sessions > 0 || strain.cardioEntries > 0
   const macro = (v: number, unit: string) =>
     hasFood ? `${fmtCompact(v)} ${unit}` : "-"
 
-  const tiles: { label: string; value: string; sub?: string; cls?: string }[] = [
+  const macros: Tile[] = [
     { label: "Calories", value: macro(totals.calories, "kcal") },
     { label: "Protein", value: macro(totals.protein, "g") },
     { label: "Carbs", value: macro(totals.carbs, "g") },
     { label: "Fat", value: macro(totals.fat, "g") },
     { label: "Sodium", value: macro(totals.sodium, "mg") },
+  ]
+  const rec = ready.recovery
+  const body: Tile[] = [
     {
       label: "Strain",
       value: trained ? `${fmt(strain.score)} / ${STRAIN_MAX}` : "-",
       sub: trained ? STRAIN_ZONE_LABELS[strain.zone] : "Rest day",
       cls: ZONE_TEXT[strain.zone],
     },
+    {
+      label: "Sleep",
+      value: sleep.entries.length ? `${fmt(sleep.totalSec / 3600)} h` : "-",
+      sub: sleep.entries.length
+        ? sleep.napSec > 0
+          ? `incl. ${fmtCompact(sleep.napSec / 60)} min nap`
+          : `goal ${fmt(settings.sleepGoalHours, 0)} h`
+        : "not logged",
+    },
+    {
+      label: "Recovery",
+      value: rec.score != null ? `${rec.score} / 100` : "-",
+      sub: rec.score != null ? "from sleep, strain, food" : "needs sleep",
+    },
+    {
+      label: "Readiness",
+      value: ready.score != null ? `${ready.score} / 100` : "-",
+      sub: ready.zone ? ready.label : "needs sleep",
+      cls: ready.zone ? READY_TEXT[ready.zone] : undefined,
+    },
   ]
 
+  const render = (t: Tile) => (
+    <div key={t.label} className="rounded-xl bg-muted px-3 py-2">
+      <p className="microlabel !text-[10px]">{t.label}</p>
+      <p className="mt-0.5 text-[13px] font-semibold">{t.value}</p>
+      {t.sub && <p className={"text-[11px] font-medium " + (t.cls ?? "")}>{t.sub}</p>}
+    </div>
+  )
+
   return (
-    <div className="grid grid-cols-3 gap-2 tabular-nums sm:grid-cols-6">
-      {tiles.map((t) => (
-        <div key={t.label} className="rounded-xl bg-muted px-3 py-2">
-          <p className="microlabel !text-[10px]">{t.label}</p>
-          <p className="mt-0.5 text-[13px] font-semibold">{t.value}</p>
-          {t.sub && (
-            <p className={"text-[11px] font-medium " + (t.cls ?? "")}>{t.sub}</p>
-          )}
-        </div>
-      ))}
+    <div className="space-y-2 tabular-nums">
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">{macros.map(render)}</div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">{body.map(render)}</div>
     </div>
   )
 }
@@ -552,6 +607,58 @@ function WeightSection({
   )
 }
 
+// ───────────────────────────── Sleep ─────────────────────────────
+function SleepSection({
+  entries,
+  onDelete,
+}: {
+  entries: SleepEntry[]
+  onDelete: (id: string) => void
+}) {
+  return (
+    <SectionCard
+      icon={<Moon className="size-4" />}
+      title="Sleep"
+      count={entries.length}
+    >
+      {entries.length === 0 ? (
+        <NothingLogged what="no sleep logged ending on this day" />
+      ) : (
+        <ul className="divide-y divide-line">
+          {entries.map((e) => {
+            const wake = new Date(new Date(e.datetime).getTime() + e.durationSec * 1000)
+            return (
+              <li key={e.id} className="flex items-start gap-2 py-2.5 first:pt-0">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="flex items-center gap-2 font-medium">
+                      {e.kind === "nap" ? "Nap" : "Sleep"}
+                      <span className="text-sm font-semibold tabular-nums">
+                        {formatDuration(e.durationSec).replace(/:\d\d$/, "")} h
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                      {formatTime(e.datetime)} – {formatTime(wake.toISOString())}
+                    </span>
+                  </div>
+                  {e.notes && (
+                    <p className="mt-0.5 text-xs text-muted-foreground">{e.notes}</p>
+                  )}
+                </div>
+                <DeleteButton
+                  label="Delete sleep entry"
+                  description={`Delete this ${e.kind === "nap" ? "nap" : "sleep"} entry? This cannot be undone.`}
+                  onConfirm={() => onDelete(e.id)}
+                />
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </SectionCard>
+  )
+}
+
 // ───────────────────────────── Page ─────────────────────────────
 export default function Page() {
   const s = useStore()
@@ -591,9 +698,14 @@ export default function Page() {
         .sort(byTime),
     [s.weightLog, selectedKey]
   )
+  // Sleep belongs to the day it ends (last night's sleep shows under today).
+  const sleep = useMemo(
+    () => sleepForDay(s.sleepLog, selectedKey).entries,
+    [s.sleepLog, selectedKey]
+  )
 
   const totalEntries =
-    food.length + workouts.length + cardio.length + weights.length
+    food.length + workouts.length + cardio.length + weights.length + sleep.length
 
   function shiftDay(delta: number) {
     const next = delta > 0 ? addDays(selectedDate, 1) : subDays(selectedDate, 1)
@@ -614,6 +726,7 @@ export default function Page() {
       workoutLog: workouts,
       cardioLog: cardio,
       weightLog: weights,
+      sleepLog: sleep,
     }
     try {
       const blob = new Blob([JSON.stringify(payload, null, 2)], {
@@ -718,6 +831,8 @@ export default function Page() {
             food={food}
             workoutLog={s.workoutLog}
             cardioLog={s.cardioLog}
+            sleepLog={s.sleepLog}
+            settings={s.settings}
             day={selectedKey}
           />
           <FoodSection
@@ -733,6 +848,10 @@ export default function Page() {
             entries={cardio}
             distanceUnit={s.settings.distanceUnit}
             onDelete={(id) => handleDelete(s.deleteCardio, id, "Cardio entry")}
+          />
+          <SleepSection
+            entries={sleep}
+            onDelete={(id) => handleDelete(s.deleteSleep, id, "Sleep entry")}
           />
           <WeightSection
             entries={weights}

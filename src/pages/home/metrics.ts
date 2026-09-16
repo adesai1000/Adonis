@@ -10,11 +10,13 @@ import {
   signed,
 } from "@/lib/calc"
 import { STRAIN_MAX, strainForDay } from "@/lib/strain"
+import { readinessForDay, recoveryForDay, sleepForDay } from "@/lib/recovery"
 import type {
   CardioEntry,
   CardKey,
   FoodEntry,
   Settings,
+  SleepEntry,
   WeightEntry,
   WorkoutSession,
 } from "@/lib/types"
@@ -34,6 +36,9 @@ export interface CardMetric {
 
 export const CARD_TITLES: Record<CardKey, string> = {
   strain: "Strain",
+  recovery: "Recovery",
+  readiness: "Readiness",
+  sleep: "Sleep",
   volume: "Weight Lifted",
   reps: "Reps / Set",
   calories: "Calories",
@@ -168,6 +173,7 @@ export function computeCardMetric(
     cardioLog: CardioEntry[]
     weightLog: WeightEntry[]
     foodLog: FoodEntry[]
+    sleepLog: SleepEntry[]
     settings: Settings
   }
 ): CardMetric {
@@ -177,6 +183,41 @@ export function computeCardMetric(
   const wUnit = settings.weightUnit
 
   switch (key) {
+    case "sleep": {
+      const t = sleepForDay(data.sleepLog, today)
+      const y = sleepForDay(data.sleepLog, yesterday)
+      const delta = (t.totalSec - y.totalSec) / 3600
+      const direction: CardMetric["direction"] =
+        Math.abs(delta) < 0.05 ? "flat" : delta > 0 ? "up" : "down"
+      return {
+        display: `${fmt(t.totalSec / 3600)} h`,
+        trendText: `${signed(delta)} h`,
+        direction,
+        tone: higherIsBetterTone(direction),
+        hasData: t.entries.length > 0,
+        hasPrev: y.entries.length > 0,
+      }
+    }
+    case "recovery":
+    case "readiness": {
+      const score = (day: string) =>
+        key === "recovery"
+          ? recoveryForDay(data, day).score
+          : readinessForDay(data, day).score
+      const t = score(today)
+      const y = score(yesterday)
+      const delta = (t ?? 0) - (y ?? 0)
+      const direction: CardMetric["direction"] =
+        Math.abs(delta) < 0.5 ? "flat" : delta > 0 ? "up" : "down"
+      return {
+        display: t != null ? `${t} / 100` : "-",
+        trendText: signed(delta, 0),
+        direction,
+        tone: higherIsBetterTone(direction),
+        hasData: t != null,
+        hasPrev: y != null,
+      }
+    }
     case "strain": {
       const hasActivity = (day: string) =>
         data.workoutLog.some((s) => dateKey(s.datetime) === day) ||

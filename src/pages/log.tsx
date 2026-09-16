@@ -3,6 +3,7 @@ import { useNav } from "@/store/nav"
 import { FoodTab } from "./log/food-tab"
 import { WorkoutTab } from "./log/workout-tab"
 import { CardioTab } from "./log/cardio-tab"
+import { SleepTab } from "./log/sleep-tab"
 import { WeightTab } from "./log/weight-tab"
 
 export default function LogPage() {
@@ -15,11 +16,12 @@ export default function LogPage() {
         onValueChange={(v) => setLogTab(v as typeof logTab)}
         className="gap-6"
       >
-        <TabsList className="grid h-11 w-full grid-cols-4">
+        <TabsList className="grid h-11 w-full grid-cols-5 [&>[data-slot=tabs-trigger]]:px-1.5">
           <TabsTrigger value="food">Food</TabsTrigger>
           <TabsTrigger value="workout">Workout</TabsTrigger>
           <TabsTrigger value="cardio">Cardio</TabsTrigger>
-          <TabsTrigger value="weight">Body Weight</TabsTrigger>
+          <TabsTrigger value="sleep">Sleep</TabsTrigger>
+          <TabsTrigger value="weight">Weight</TabsTrigger>
         </TabsList>
 
         <TabsContent
@@ -39,6 +41,12 @@ export default function LogPage() {
           className="animate-in fade-in-50 duration-200"
         >
           <CardioTab />
+        </TabsContent>
+        <TabsContent
+          value="sleep"
+          className="animate-in fade-in-50 duration-200"
+        >
+          <SleepTab />
         </TabsContent>
         <TabsContent
           value="weight"

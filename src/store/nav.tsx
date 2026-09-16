@@ -2,7 +2,7 @@ import { createContext, useCallback, useContext, type ReactNode } from "react"
 import { STORAGE_KEYS, usePersistentState } from "@/lib/storage"
 
 export type Section = "home" | "log" | "meals" | "history" | "weight" | "settings"
-export type LogTab = "food" | "workout" | "cardio" | "weight"
+export type LogTab = "food" | "workout" | "cardio" | "sleep" | "weight"
 
 interface NavState {
   section: Section

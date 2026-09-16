@@ -27,6 +27,9 @@ import type { CardKey, GraphTab, HomeSection, TrendRange } from "@/lib/types"
 
 const CARD_LABELS: Record<CardKey, string> = {
   strain: "Strain",
+  recovery: "Recovery",
+  readiness: "Readiness",
+  sleep: "Sleep",
   volume: "Volume",
   reps: "Reps",
   calories: "Calories",
@@ -46,6 +49,7 @@ const GRAPH_LABELS: Record<GraphTab, string> = {
 
 const HOME_SECTION_LABELS: Record<HomeSection, string> = {
   cards: "Trend cards",
+  readiness: "Readiness",
   graph: "Trends graph",
   tracker: "Consistency tracker",
 }

@@ -34,6 +34,7 @@ import type {
   Meal,
   Routine,
   Settings,
+  SleepEntry,
   UiPrefs,
   UserProfile,
   WeightEntry,
@@ -94,6 +95,7 @@ export interface Store {
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
+  sleepLog: SleepEntry[]
   exercises: Exercise[]
   routines: Routine[]
   settings: Settings
@@ -123,6 +125,10 @@ export interface Store {
   // ── weight log ──
   addWeight: (data: Omit<WeightEntry, "id">) => string
   deleteWeight: (id: string) => void
+
+  // ── sleep log ──
+  addSleep: (data: Omit<SleepEntry, "id">) => string
+  deleteSleep: (id: string) => void
 
   // ── exercises ──
   addExercise: (data: Omit<Exercise, "id" | "builtIn">) => string
@@ -176,6 +182,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   )
   const [weightLog, setWeightLog] = usePersistentState<WeightEntry[]>(
     STORAGE_KEYS.weightLog,
+    []
+  )
+  const [sleepLog, setSleepLog] = usePersistentState<SleepEntry[]>(
+    STORAGE_KEYS.sleepLog,
     []
   )
   const [exercises, setExercises] = usePersistentState<Exercise[]>(
@@ -286,6 +296,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [setWeightLog]
   )
 
+  // ── sleep log ──
+  const addSleep = useCallback(
+    (data: Omit<SleepEntry, "id">) => {
+      const id = uid()
+      setSleepLog((l) => [...l, { ...data, id }])
+      return id
+    },
+    [setSleepLog]
+  )
+  const deleteSleep = useCallback(
+    (id: string) => setSleepLog((l) => l.filter((x) => x.id !== id)),
+    [setSleepLog]
+  )
+
   // ── exercises ──
   const addExercise = useCallback(
     (data: Omit<Exercise, "id" | "builtIn">) => {
@@ -344,6 +368,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      sleepLog,
       exercises,
       routines,
       settings,
@@ -358,6 +383,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      sleepLog,
       exercises,
       routines,
       settings,
@@ -373,6 +399,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (data.workoutLog) setWorkoutLog(data.workoutLog)
       if (data.cardioLog) setCardioLog(data.cardioLog)
       if (data.weightLog) setWeightLog(data.weightLog)
+      if (data.sleepLog) setSleepLog(data.sleepLog)
       if (data.exercises) setExercises(data.exercises)
       if (data.routines) setRoutines(data.routines)
       if (data.settings) setSettings({ ...defaultSettings, ...data.settings })
@@ -386,6 +413,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setWorkoutLog,
       setCardioLog,
       setWeightLog,
+      setSleepLog,
       setExercises,
       setRoutines,
       setSettings,
@@ -400,6 +428,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWorkoutLog([])
     setCardioLog([])
     setWeightLog([])
+    setSleepLog([])
     setExercises(seedExercises())
     setRoutines([])
     setSettings(defaultSettings)
@@ -425,6 +454,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setWorkoutLog,
     setCardioLog,
     setWeightLog,
+    setSleepLog,
     setExercises,
     setRoutines,
     setSettings,
@@ -463,6 +493,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       workoutLog,
       cardioLog,
       weightLog,
+      sleepLog,
       exercises,
       routines,
       settings,
@@ -480,6 +511,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteCardio,
       addWeight,
       deleteWeight,
+      addSleep,
+      deleteSleep,
       addExercise,
       deleteExercise,
       addRoutine,
@@ -519,6 +552,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       deleteCardio,
       addWeight,
       deleteWeight,
+      addSleep,
+      deleteSleep,
       addExercise,
       deleteExercise,
       addRoutine,

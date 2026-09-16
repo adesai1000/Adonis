@@ -36,6 +36,7 @@ type NumericGoalKey =
   | "carbsGoal"
   | "fatGoal"
   | "goalWeight"
+  | "sleepGoalHours"
 
 function NumericGoal({
   field,
@@ -256,6 +257,7 @@ export function GoalsSection() {
           <NumericGoal field="goalWeight" label="Goal body weight" unit={wUnit} />
           <GoalDate />
           <HeightField />
+          <NumericGoal field="sleepGoalHours" label="Sleep target" unit="h" />
         </div>
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

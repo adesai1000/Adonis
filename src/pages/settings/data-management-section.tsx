@@ -36,6 +36,7 @@ function summarize(data: Partial<BackupData>): string {
   push(data.workoutLog?.length, "workouts")
   push(data.cardioLog?.length, "cardio entries")
   push(data.weightLog?.length, "weight entries")
+  push(data.sleepLog?.length, "sleep entries")
   push(data.meals?.length, "meals")
   push(data.exercises?.length, "exercises")
   push(data.routines?.length, "routines")

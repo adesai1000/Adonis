@@ -4,6 +4,11 @@ import type {
   FoodProduct,
   FoodSearchHit,
 } from "../../api/_lib/food-types"
+import {
+  plausiblePer100g,
+  plausiblePerServing,
+  tidyName,
+} from "../../api/_lib/food-text"
 
 // ───────────────────────────── Open Food Facts ─────────────────────────────
 // Free, community-maintained product database keyed by barcode (EAN/UPC).
@@ -102,14 +107,20 @@ export async function lookupProduct(barcode: string): Promise<ScannedProduct | n
 
   const p = json.product
   const n = p.nutriments ?? {}
-  const per100g = macrosFor(n, "_100g")
   const servingGrams = num(p.serving_quantity) ?? undefined
+  // Drop anything that can't physically be right (per-package numbers typed
+  // into the per-100 g fields are common in community data).
+  let per100g = macrosFor(n, "_100g")
+  if (per100g && !plausiblePer100g(per100g)) per100g = null
   let perServing = macrosFor(n, "_serving")
+  if (perServing && !plausiblePerServing(perServing, servingGrams)) perServing = null
   if (!perServing && per100g && servingGrams && servingGrams > 0) {
     perServing = scale(per100g, servingGrams / 100)
   }
-  const name = (p.product_name_en || p.product_name || "").trim()
-  const brand = pickBrand(p.brands, name)
+  const rawName = (p.product_name_en || p.product_name || "").trim()
+  const rawBrand = pickBrand(p.brands, rawName)
+  const name = tidyName(rawName)
+  const brand = rawBrand ? tidyName(rawBrand) : undefined
 
   return {
     source: "off",

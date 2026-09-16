@@ -7,6 +7,7 @@ export const STORAGE_KEYS = {
   workoutLog: "wt_workout_log",
   cardioLog: "wt_cardio_log",
   weightLog: "wt_weight_log",
+  sleepLog: "wt_sleep_log",
   exercises: "wt_exercises",
   routines: "wt_routines",
   settings: "wt_settings",

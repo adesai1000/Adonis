@@ -144,6 +144,18 @@ export interface WeightEntry {
   notes?: string
 }
 
+// ───────────────────────────── Sleep ─────────────────────────────
+export type SleepKind = "sleep" | "nap"
+
+export interface SleepEntry {
+  id: ID
+  /** When you went to bed / the nap started (ISO). */
+  datetime: string
+  kind: SleepKind
+  durationSec: number
+  notes?: string
+}
+
 // ───────────────────────────── Routines ─────────────────────────────
 export interface RoutineExercise {
   exerciseId: ID
@@ -173,11 +185,16 @@ export interface Settings {
   trendRange: TrendRange
   /** yyyy-MM-dd the consistency tracker counts from, or "" to auto-detect from the earliest log entry. */
   trackingStartDate: string
+  /** Overnight sleep target used by the recovery score. */
+  sleepGoalHours: number
 }
 
 // ───────────────────────────── Dashboard UI prefs ─────────────────────────────
 export type CardKey =
   | "strain"
+  | "recovery"
+  | "readiness"
+  | "sleep"
   | "volume"
   | "reps"
   | "calories"
@@ -190,7 +207,7 @@ export type CardKey =
 export type GraphTab = "bodyweight" | "calories" | "protein"
 
 /** The reorderable sections of the Home page. */
-export type HomeSection = "cards" | "graph" | "tracker"
+export type HomeSection = "cards" | "readiness" | "graph" | "tracker"
 
 export interface UiPrefs {
   cardOrder: CardKey[]
@@ -208,6 +225,7 @@ export interface BackupData {
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
   weightLog: WeightEntry[]
+  sleepLog?: SleepEntry[]
   exercises: Exercise[]
   routines: Routine[]
   settings: Settings
