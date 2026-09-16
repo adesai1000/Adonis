@@ -27,6 +27,8 @@ interface GemState {
 /** Spring constants for the lean toward the cursor (per frame at 60 Hz). */
 const STIFF = 0.09
 const DAMP = 0.74
+/** Draw area around each stone, as a fraction of its size, for the halo. */
+const PAD = 0.9
 
 /**
  * One WebGL canvas that renders every gem in `gems` in its own cell. Idle it
@@ -51,6 +53,11 @@ export function OpalField({
   const gemsRef = useRef(gems)
   gemsRef.current = gems
   const failedRef = useRef(false)
+  // The canvas is larger than the field by this much on every side so the
+  // halo of an edge stone isn't clipped into a square.
+  const margin = Math.ceil(Math.max(0, ...gems.map((g) => g.size)) * PAD)
+  const cw = width + margin * 2
+  const ch = height + margin * 2
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -143,13 +150,13 @@ export function OpalField({
     const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
     const resize = () => {
-      const key = `${width}x${height}x${dpr}`
+      const key = `${cw}x${ch}x${dpr}`
       if (key === lastSize) return
       lastSize = key
-      canvas.width = Math.max(1, Math.round(width * dpr))
-      canvas.height = Math.max(1, Math.round(height * dpr))
-      canvas.style.width = `${width}px`
-      canvas.style.height = `${height}px`
+      canvas.width = Math.max(1, Math.round(cw * dpr))
+      canvas.height = Math.max(1, Math.round(ch * dpr))
+      canvas.style.width = `${cw}px`
+      canvas.style.height = `${ch}px`
     }
 
     const frame = () => {
@@ -167,8 +174,11 @@ export function OpalField({
       for (let i = 0; i < list.length; i++) {
         const g = list[i]
         const st = stateFor(i)
-        const cx = g.x + g.size / 2
-        const cy = g.y + g.size / 2
+        // canvas space: field coordinates shifted by the margin
+        const gx = g.x + margin
+        const gy = g.y + margin
+        const cx = gx + g.size / 2
+        const cy = gy + g.size / 2
 
         // spring toward the cursor: target lean and bulge from proximity
         let tx = 0, ty = 0, tb = 0
@@ -189,9 +199,9 @@ export function OpalField({
         st.bulgeV = (st.bulgeV + (tb - st.bulge) * STIFF) * DAMP
         st.bulge += st.bulgeV
 
-        const pad = g.size * 0.9
-        const vx = Math.round((g.x - pad) * dpr)
-        const vy = Math.round((height - (g.y + g.size + pad)) * dpr)
+        const pad = g.size * PAD
+        const vx = Math.round((gx - pad) * dpr)
+        const vy = Math.round((ch - (gy + g.size + pad)) * dpr)
         const vs = Math.round((g.size + pad * 2) * dpr)
         gl.viewport(vx, vy, vs, vs)
 
@@ -233,17 +243,19 @@ export function OpalField({
       let best = -1, bestD = Infinity
       for (let i = 0; i < list.length; i++) {
         const g = list[i]
-        const d = Math.hypot(p.x - (g.x + g.size / 2), p.y - (g.y + g.size / 2))
+        const d = Math.hypot(p.x - (g.x + margin + g.size / 2), p.y - (g.y + margin + g.size / 2))
         if (d < bestD) { bestD = d; best = i }
       }
       if (best < 0 || bestD > list[best].size * 1.2) return
       const g = list[best]
       const st = stateFor(best)
       st.rippleStart = performance.now()
-      const pad = g.size * 0.9
+      const pad = g.size * PAD
+      const gx = g.x + margin
+      const gy = g.y + margin
       st.rippleAt = [
-        ((p.x - (g.x - pad)) / (g.size + pad * 2)) * 2 - 1,
-        -(((p.y - (g.y - pad)) / (g.size + pad * 2)) * 2 - 1),
+        ((p.x - (gx - pad)) / (g.size + pad * 2)) * 2 - 1,
+        -(((p.y - (gy - pad)) / (g.size + pad * 2)) * 2 - 1),
       ]
       kick()
     }
@@ -278,14 +290,21 @@ export function OpalField({
       gl.deleteProgram(program)
     }
     // re-created only when the field size changes; gems flow through the ref
-  }, [width, height])
+  }, [cw, ch, margin])
 
   return (
     <>
       <canvas
         ref={canvasRef}
         className={className}
-        style={{ position: "absolute", inset: 0, pointerEvents: "none" }}
+        style={{
+          position: "absolute",
+          left: -margin,
+          top: -margin,
+          width: cw,
+          height: ch,
+          pointerEvents: "none",
+        }}
         aria-hidden
       />
       {children}

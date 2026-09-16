@@ -194,6 +194,10 @@ void main() {
     // halo: light leaking into the dark around the stone
     float glow = exp(-nearest * 8.0) * (mix(0.5, 0.3, u_detail) + 0.9 * ripHalo);
     glow *= 0.85 + 0.15 * snoise(vec3(uv * 3.0, t * 0.4));
+    // and fade to exactly zero before the quad edge, so the draw area can
+    // never show up as a square
+    float edgeR = max(abs(v_uv.x), abs(v_uv.y));
+    glow *= 1.0 - smoothstep(0.55, 0.95, edgeR);
     gl_FragColor = vec4(haloTint * glow, glow);   // premultiplied
     return;
   }
@@ -291,7 +295,8 @@ else {
   size(); addEventListener("resize", size);
   const st = { look: [0,0], lookV: [0,0], bulge: 0, bulgeV: 0, rippleStart: -1, rippleAt: [0,0] };
   let pointer = null, tier = 1;
-  // ?detail=0.3 previews the tracker-size material at full size
+  // ?detail=0.3 previews the tracker-size material at full size; ?seed= picks a stone
+  const SEED = parseFloat(new URLSearchParams(location.search).get("seed") || "4.2") || 4.2;
   const DETAIL = Math.max(0.3, Math.min(1, parseFloat(new URLSearchParams(location.search).get("detail") || "1") || 1)); const t0 = performance.now();
   const STIFF = 0.09, DAMP = 0.74;
   const local = e => { const r = canvas.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * 2 - 1, y: -((e.clientY - r.top) / r.height * 2 - 1) }; };
@@ -309,7 +314,7 @@ else {
     st.bulgeV = (st.bulgeV + (tb - st.bulge) * STIFF) * DAMP; st.bulge += st.bulgeV;
     gl.viewport(0, 0, canvas.width, canvas.height); gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.uniform1f(U("u_time"), t); gl.uniform2f(U("u_look"), st.look[0], st.look[1]); gl.uniform1f(U("u_bulge"), st.bulge);
-    gl.uniform1f(U("u_tier"), tier); gl.uniform1f(U("u_seed"), 4.2);
+    gl.uniform1f(U("u_tier"), tier); gl.uniform1f(U("u_seed"), SEED);
     const rip = st.rippleStart >= 0 ? (now - st.rippleStart) / 1000 : -1;
     gl.uniform1f(U("u_ripple"), rip >= 0 && rip < 2.5 ? rip : -1); gl.uniform2f(U("u_rippleAt"), st.rippleAt[0], st.rippleAt[1]);
     gl.uniform1f(U("u_birth"), t); gl.uniform1f(U("u_px"), 2 / canvas.width); gl.uniform1f(U("u_detail"), DETAIL);

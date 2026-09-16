@@ -180,6 +180,10 @@ void main() {
     // halo: light leaking into the dark around the stone
     float glow = exp(-nearest * 8.0) * (mix(0.5, 0.3, u_detail) + 0.9 * ripHalo);
     glow *= 0.85 + 0.15 * snoise(vec3(uv * 3.0, t * 0.4));
+    // and fade to exactly zero before the quad edge, so the draw area can
+    // never show up as a square
+    float edgeR = max(abs(v_uv.x), abs(v_uv.y));
+    glow *= 1.0 - smoothstep(0.55, 0.95, edgeR);
     gl_FragColor = vec4(haloTint * glow, glow);   // premultiplied
     return;
   }
