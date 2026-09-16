@@ -30,7 +30,9 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EmptyState, TrendIndicator } from "@/components/common/bits"
-import { convertWeight, fmt, formatDate, formatTime, signed } from "@/lib/calc"
+import { convertWeight, fmt, formatDate, formatTime, signed,
+  startingWeightEntry,
+} from "@/lib/calc"
 import { useStore } from "@/store/store"
 import type { WeightEntry } from "@/lib/types"
 
@@ -67,9 +69,18 @@ export default function Page() {
     [weightLog, unit]
   )
 
-  // ── Stats over the full history ──
+  // ── Stats from the tracking start date (Settings → Dashboard) ──
   const hasData = allSorted.length > 0
-  const first = allSorted.length ? allSorted[0] : null
+  const startEntry = useMemo(
+    () => startingWeightEntry(weightLog, settings.trackingStartDate),
+    [weightLog, settings.trackingStartDate]
+  )
+  const first: Point | null = startEntry
+    ? {
+        ts: safeDate(startEntry.datetime).getTime(),
+        weight: convertWeight(startEntry.weight, startEntry.unit, unit),
+      }
+    : null
   const latest = allSorted.length ? allSorted[allSorted.length - 1] : null
   const current = latest?.weight ?? 0
   const starting = first?.weight ?? 0

@@ -318,3 +318,23 @@ export function computeTrend(value: number, prev: number): Trend {
     Math.abs(delta) < 1e-9 ? "flat" : delta > 0 ? "up" : "down"
   return { value, prev, delta, pct, direction }
 }
+
+// ───────────────────────────── starting weight ─────────────────────────────
+/**
+ * The weigh-in progress is measured from: the first entry on or after the
+ * tracking start date (Settings → Dashboard), or the first ever when no
+ * start date is set or nothing was logged after it.
+ */
+export function startingWeightEntry<T extends { datetime: string }>(
+  weightLog: T[],
+  trackingStartDate: string
+): T | null {
+  if (weightLog.length === 0) return null
+  const sorted = [...weightLog].sort((a, b) => a.datetime.localeCompare(b.datetime))
+  if (trackingStartDate) {
+    const startKey = trackingStartDate.slice(0, 10)
+    const onOrAfter = sorted.find((e) => dateKey(e.datetime) >= startKey)
+    if (onOrAfter) return onOrAfter
+  }
+  return sorted[0]
+}

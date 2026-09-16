@@ -94,9 +94,10 @@ function TrackingStartDate() {
 
   return (
     <div className="space-y-1.5">
-      <Label>Consistency tracker start date</Label>
+      <Label>Tracking start date</Label>
       <p className="text-xs text-muted-foreground">
-        Defaults to your earliest logged entry if left unset.
+        Where the consistency tracker begins, and the weigh-in your weight
+        progress is measured from. Defaults to your earliest logged entry.
       </p>
       <div className="flex gap-2">
         <Popover>
