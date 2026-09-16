@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from "react"
-import { Apple, UtensilsCrossed } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Apple, ScanBarcode, UtensilsCrossed } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -9,6 +9,7 @@ import { Separator } from "@/components/ui/separator"
 import { Combobox, type ComboOption } from "@/components/common/combobox"
 import { DateTimePicker } from "@/components/common/datetime-picker"
 import { EmptyState, FieldError, Stepper } from "@/components/common/bits"
+import { ProductScanFlow } from "@/components/common/product-scan-flow"
 import { fmt, isoNow, round1 } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
@@ -28,11 +29,12 @@ const initialDraft = (): FoodDraft => ({
 })
 
 export function FoodTab() {
-  const { meals, addFood } = useStore()
+  const { meals, addFood, addMeal } = useStore()
   const [draft, setDraft] = useDraft<FoodDraft>(
     "wt_draft_food",
     initialDraft()
   )
+  const [scanOpen, setScanOpen] = useState(false)
 
   // Keep an abandoned draft's date/time from going stale across visits —
   // always start a fresh visit to this tab at the current moment.
@@ -92,18 +94,53 @@ export function FoodTab() {
     setDraft(initialDraft())
   }
 
+  const scanButton = (
+    <Button
+      type="button"
+      variant="outline"
+      className="h-11 w-full"
+      onClick={() => setScanOpen(true)}
+    >
+      <ScanBarcode className="size-4" />
+      Scan a barcode
+    </Button>
+  )
+
+  const scanFlow = (
+    <ProductScanFlow
+      open={scanOpen}
+      onOpenChange={setScanOpen}
+      meals={meals}
+      confirmLabel="Add & select"
+      onExisting={(m) => {
+        setDraft((d) => ({ ...d, mealId: m.id }))
+        toast.success(`Selected ${m.name}`)
+      }}
+      onNew={(data) => {
+        const id = addMeal(data)
+        setDraft((d) => ({ ...d, mealId: id }))
+        toast.success(`Added ${data.name} to your meals`)
+      }}
+    />
+  )
+
   if (meals.length === 0) {
     return (
-      <EmptyState
-        icon={<UtensilsCrossed className="size-8" />}
-        title="No meals yet"
-        hint="Create meals on the Meals page to log food here."
-      />
+      <>
+        <EmptyState
+          icon={<UtensilsCrossed className="size-8" />}
+          title="No meals yet"
+          hint="Create meals on the Meals page, or scan a product barcode to add one."
+          action={scanButton}
+        />
+        {scanFlow}
+      </>
     )
   }
 
   return (
     <div className="space-y-4">
+      {scanFlow}
       <DateTimePicker
         value={draft.datetime}
         onChange={(datetime) => setDraft((d) => ({ ...d, datetime }))}
@@ -120,6 +157,7 @@ export function FoodTab() {
           emptyText="No meals found."
         />
         {showMealError && <FieldError>Select a meal to log.</FieldError>}
+        {scanButton}
       </div>
 
       <div className="space-y-1.5">

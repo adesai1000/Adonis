@@ -26,7 +26,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
-import { Separator } from "@/components/ui/separator"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -56,6 +55,12 @@ import {
   todayKey,
 } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
+import {
+  STRAIN_MAX,
+  STRAIN_ZONE_LABELS,
+  strainBreakdown,
+  type StrainZone,
+} from "@/lib/strain"
 import type {
   CardioEntry,
   DistanceUnit,
@@ -177,6 +182,66 @@ function NothingLogged({ what }: { what: string }) {
   )
 }
 
+// ───────────────────────────── Day summary ─────────────────────────────
+const ZONE_TEXT: Record<StrainZone, string> = {
+  rest: "text-ink-3",
+  light: "text-ink-2",
+  moderate: "text-green-ink",
+  high: "text-amber",
+  allout: "text-red",
+}
+
+/** Macro totals and strain for the selected day, leading the page. */
+function DaySummary({
+  food,
+  workoutLog,
+  cardioLog,
+  day,
+}: {
+  food: FoodEntry[]
+  workoutLog: WorkoutSession[]
+  cardioLog: CardioEntry[]
+  day: string
+}) {
+  const totals = useMemo(() => sumMacros(food), [food])
+  const strain = useMemo(
+    () => strainBreakdown(workoutLog, cardioLog, day),
+    [workoutLog, cardioLog, day]
+  )
+  const hasFood = food.length > 0
+  const trained = strain.sessions > 0 || strain.cardioEntries > 0
+  const macro = (v: number, unit: string) =>
+    hasFood ? `${fmtCompact(v)} ${unit}` : "-"
+
+  const tiles: { label: string; value: string; sub?: string; cls?: string }[] = [
+    { label: "Calories", value: macro(totals.calories, "kcal") },
+    { label: "Protein", value: macro(totals.protein, "g") },
+    { label: "Carbs", value: macro(totals.carbs, "g") },
+    { label: "Fat", value: macro(totals.fat, "g") },
+    { label: "Sodium", value: macro(totals.sodium, "mg") },
+    {
+      label: "Strain",
+      value: trained ? `${fmt(strain.score)} / ${STRAIN_MAX}` : "-",
+      sub: trained ? STRAIN_ZONE_LABELS[strain.zone] : "Rest day",
+      cls: ZONE_TEXT[strain.zone],
+    },
+  ]
+
+  return (
+    <div className="grid grid-cols-3 gap-2 tabular-nums sm:grid-cols-6">
+      {tiles.map((t) => (
+        <div key={t.label} className="rounded-xl bg-muted px-3 py-2">
+          <p className="microlabel !text-[10px]">{t.label}</p>
+          <p className="mt-0.5 text-[13px] font-semibold">{t.value}</p>
+          {t.sub && (
+            <p className={"text-[11px] font-medium " + (t.cls ?? "")}>{t.sub}</p>
+          )}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ───────────────────────────── Food ─────────────────────────────
 function FoodSection({
   entries,
@@ -185,8 +250,6 @@ function FoodSection({
   entries: FoodEntry[]
   onDelete: (id: string) => void
 }) {
-  const totals = useMemo(() => sumMacros(entries), [entries])
-
   return (
     <SectionCard
       icon={<UtensilsCrossed className="size-4" />}
@@ -197,22 +260,6 @@ function FoodSection({
         <NothingLogged what="no food entries for this day" />
       ) : (
         <div className="space-y-3">
-          {/* Day totals lead; the individual entries follow. */}
-          <div className="grid grid-cols-3 gap-2 tabular-nums sm:grid-cols-5">
-            {[
-              ["Calories", `${fmtCompact(totals.calories)} kcal`],
-              ["Protein", `${fmtCompact(totals.protein)} g`],
-              ["Carbs", `${fmtCompact(totals.carbs)} g`],
-              ["Fat", `${fmtCompact(totals.fat)} g`],
-              ["Sodium", `${fmtCompact(totals.sodium)} mg`],
-            ].map(([label, value]) => (
-              <div key={label} className="rounded-xl bg-muted px-3 py-2">
-                <p className="microlabel !text-[10px]">{label}</p>
-                <p className="mt-0.5 text-[13px] font-semibold">{value}</p>
-              </div>
-            ))}
-          </div>
-          <Separator />
           <ul className="divide-y divide-line">
             {entries.map((e) => (
               <li
@@ -667,6 +714,12 @@ export default function Page() {
         />
       ) : (
         <div className="space-y-4">
+          <DaySummary
+            food={food}
+            workoutLog={s.workoutLog}
+            cardioLog={s.cardioLog}
+            day={selectedKey}
+          />
           <FoodSection
             entries={food}
             onDelete={(id) => handleDelete(s.deleteFood, id, "Food entry")}

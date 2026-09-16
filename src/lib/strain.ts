@@ -20,6 +20,24 @@ const MINUTES_PER_SET_FALLBACK = 2.5
 /** Walking cadence used to estimate time for step-only entries. */
 const STEPS_PER_MINUTE = 100
 
+export type StrainZone = "rest" | "light" | "moderate" | "high" | "allout"
+
+export const STRAIN_ZONE_LABELS: Record<StrainZone, string> = {
+  rest: "Rest day",
+  light: "Light",
+  moderate: "Moderate",
+  high: "High",
+  allout: "All out",
+}
+
+export function strainZone(score: number): StrainZone {
+  if (score <= 0) return "rest"
+  if (score < 10) return "light"
+  if (score < 14) return "moderate"
+  if (score < 18) return "high"
+  return "allout"
+}
+
 /** Effort multiplier by activity, used when no heart rate was logged. */
 const ACTIVITY_INTENSITY: Record<CardioActivity, number> = {
   Steps: 0.25,
@@ -93,4 +111,50 @@ export function strainForDay(
   for (const s of workoutLog) if (dateKey(s.datetime) === day) load += liftLoad(s)
   for (const e of cardioLog) if (dateKey(e.datetime) === day) load += cardioLoad(e)
   return loadToStrain(load)
+}
+
+export interface StrainBreakdown {
+  score: number
+  zone: StrainZone
+  /** Total effort-minutes behind the score. */
+  load: number
+  /** Effort-minutes from workout sessions (sets, tonnage, in-session cardio). */
+  liftLoad: number
+  /** Effort-minutes from standalone cardio entries. */
+  cardioLoad: number
+  sessions: number
+  cardioEntries: number
+}
+
+/** Where a day's strain came from, for the History page. */
+export function strainBreakdown(
+  workoutLog: WorkoutSession[],
+  cardioLog: CardioEntry[],
+  day: string
+): StrainBreakdown {
+  let lift = 0
+  let sessions = 0
+  for (const s of workoutLog) {
+    if (dateKey(s.datetime) !== day) continue
+    lift += liftLoad(s)
+    sessions++
+  }
+  let cardio = 0
+  let cardioEntries = 0
+  for (const e of cardioLog) {
+    if (dateKey(e.datetime) !== day) continue
+    cardio += cardioLoad(e)
+    cardioEntries++
+  }
+  const load = lift + cardio
+  const score = loadToStrain(load)
+  return {
+    score,
+    zone: strainZone(score),
+    load,
+    liftLoad: lift,
+    cardioLoad: cardio,
+    sessions,
+    cardioEntries,
+  }
 }

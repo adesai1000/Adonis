@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react"
-import { Pencil, Plus, Search, Trash2, UtensilsCrossed } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Pencil, Plus, ScanBarcode, Search, Trash2, UtensilsCrossed } from "lucide-react"
 import { toast } from "sonner"
 
 import { Badge } from "@/components/ui/badge"
@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { EmptyState, FieldError } from "@/components/common/bits"
+import { ProductScanFlow } from "@/components/common/product-scan-flow"
 import { useDraft } from "@/lib/storage"
 import { fmt, fmtCompact } from "@/lib/calc"
 import { useStore } from "@/store/store"
@@ -69,9 +70,15 @@ interface FormErrors {
   sodium?: string
 }
 
+/** Values a scanned product pre-fills into the add form. */
+interface MealPrefill {
+  form: MealForm
+  barcode?: string
+}
+
 type EditorState =
   | { mode: "closed" }
-  | { mode: "add" }
+  | { mode: "add"; prefill?: MealPrefill }
   | { mode: "edit"; meal: Meal }
 
 const MACRO_FIELDS = [
@@ -89,6 +96,7 @@ export default function Page() {
   const [query, setQuery] = useState("")
   const [editor, setEditor] = useState<EditorState>({ mode: "closed" })
   const [pendingDelete, setPendingDelete] = useState<Meal | null>(null)
+  const [scanOpen, setScanOpen] = useState(false)
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -120,14 +128,52 @@ export default function Page() {
             aria-label="Search meals"
           />
         </div>
-        <Button
-          className="h-11 shrink-0"
-          onClick={() => setEditor({ mode: "add" })}
-        >
-          <Plus className="size-4" />
-          Add meal
-        </Button>
+        <div className="flex shrink-0 gap-2">
+          <Button
+            variant="outline"
+            className="h-11"
+            onClick={() => setScanOpen(true)}
+          >
+            <ScanBarcode className="size-4" />
+            Scan
+          </Button>
+          <Button
+            className="h-11 flex-1"
+            onClick={() => setEditor({ mode: "add" })}
+          >
+            <Plus className="size-4" />
+            Add meal
+          </Button>
+        </div>
       </div>
+
+      <ProductScanFlow
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        meals={meals}
+        confirmLabel="Continue"
+        onExisting={(meal) => {
+          toast.info(`${meal.name} is already in your library`)
+          setEditor({ mode: "edit", meal })
+        }}
+        onNew={(meal) =>
+          setEditor({
+            mode: "add",
+            prefill: {
+              barcode: meal.barcode,
+              form: {
+                name: meal.name,
+                serving: meal.serving,
+                calories: String(meal.calories),
+                protein: String(meal.protein),
+                carbs: String(meal.carbs),
+                fat: String(meal.fat),
+                sodium: String(meal.sodium ?? 0),
+              },
+            },
+          })
+        }
+      />
 
       {/* List */}
       {filtered.length === 0 ? (
@@ -228,7 +274,11 @@ export default function Page() {
       )}
 
       <MealEditor
-        key={editor.mode === "edit" ? `edit-${editor.meal.id}` : "add"}
+        key={
+          editor.mode === "edit"
+            ? `edit-${editor.meal.id}`
+            : `add-${editor.mode === "add" ? editor.prefill?.barcode ?? "" : ""}`
+        }
         editor={editor}
         onClose={() => setEditor({ mode: "closed" })}
         addMeal={addMeal}
@@ -366,6 +416,13 @@ function MealEditor({
 
   const [errors, setErrors] = useState<FormErrors>({})
 
+  // A scanned product replaces whatever draft was sitting in the add form.
+  const prefill = editor.mode === "add" ? editor.prefill : undefined
+  useEffect(() => {
+    if (prefill) setForm(prefill.form)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [prefill])
+
   function set<K extends keyof MealForm>(key: K, value: string) {
     setForm((f) => ({ ...f, [key]: value }))
   }
@@ -421,7 +478,7 @@ function MealEditor({
       updateMeal(editor.meal.id, values)
       toast.success("Meal updated")
     } else {
-      addMeal({ ...values, builtIn: false })
+      addMeal({ ...values, barcode: prefill?.barcode, builtIn: false })
       toast.success("Meal added")
     }
     resetForm()

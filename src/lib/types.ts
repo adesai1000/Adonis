@@ -42,6 +42,8 @@ export interface Meal {
   carbs: number
   fat: number
   sodium?: number // mg (optional for backward compatibility)
+  /** EAN/UPC digits when the meal was created from a scanned product. */
+  barcode?: string
   builtIn?: boolean
 }
 
