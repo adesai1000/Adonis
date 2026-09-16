@@ -330,73 +330,86 @@
 
 @layer components {
   /* ── Consistency gem: a complete day (food + sleep + workout) ──
-     Outer span carries the glow (a drop-shadow follows the clipped shape;
-     a box-shadow wouldn't), the inner one is the cut stone: conic facets
-     under a diamond clip, a specular hotspot, and a one-shot light sweep. */
+     A brilliant-cut stone seen from the side: flat table, crown, pavilion
+     to a point. Ice-white facets from a conic gradient centred on the
+     girdle, a specular hotspot, a hint of fire, and a one-shot light sweep
+     on mount. Everything lives inside the clipped shape; the outer span
+     only carries a tight drop-shadow (which follows the silhouette). */
   .gem {
     position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 0 2.5px var(--green-glow)) drop-shadow(0 0 6px rgba(29, 185, 84, 0.35));
-    animation: gem-glow 5s ease-in-out infinite;
-    animation-delay: var(--gem-delay, 0ms);
+    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55)) drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.45));
   }
   .gem-body {
     position: absolute;
     inset: -1px;
-    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-    background:
-      radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 12%, rgba(255, 255, 255, 0) 38%),
-      conic-gradient(
-        from 0deg at 50% 50%,
-        #eafff0 0deg,
-        #7be49c 40deg,
-        #0f7a38 90deg,
-        #29c264 130deg,
-        #c6edd4 180deg,
-        #1db954 225deg,
-        #0c5d2b 270deg,
-        #82dca6 320deg,
-        #eafff0 360deg
-      );
+    clip-path: polygon(18% 0%, 82% 0%, 100% 34%, 50% 100%, 0% 34%);
     overflow: hidden;
+    background:
+      /* fire: faint colour flashes in two pavilion facets */
+      radial-gradient(circle at 70% 62%, rgba(255, 140, 200, 0.35) 0%, rgba(255, 140, 200, 0) 28%),
+      radial-gradient(circle at 34% 58%, rgba(120, 210, 255, 0.4) 0%, rgba(120, 210, 255, 0) 30%),
+      /* specular hotspot on the crown */
+      radial-gradient(circle at 36% 16%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 16%, rgba(255, 255, 255, 0) 42%),
+      /* crown: bright table band above the girdle */
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 30%, rgba(255, 255, 255, 0) 36%),
+      /* pavilion facets: alternating light / shadow wedges from the girdle */
+      conic-gradient(
+        from 150deg at 50% 34%,
+        #ffffff 0deg,
+        #b9c6d4 18deg,
+        #f4f8fc 36deg,
+        #8c9db0 54deg,
+        #ffffff 72deg,
+        #c9d4e0 90deg,
+        #f9fbfe 108deg,
+        #9aabbe 126deg,
+        #ffffff 144deg,
+        #d5dee8 162deg,
+        #eef3f8 180deg,
+        #a7b6c6 198deg,
+        #ffffff 216deg,
+        #c1cdd9 234deg,
+        #f6f9fc 252deg,
+        #93a4b7 270deg,
+        #ffffff 288deg,
+        #d0dae4 306deg,
+        #f0f5fa 324deg,
+        #aebccb 342deg,
+        #ffffff 360deg
+      );
   }
-  /* facet edges: a thin lighter cross through the table so the cut reads */
+  /* facet edges: girdle line and the crown/pavilion seams */
   .gem-body::after {
     content: "";
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(90deg, transparent 47%, rgba(255, 255, 255, 0.45) 50%, transparent 53%),
-      linear-gradient(0deg, transparent 47%, rgba(255, 255, 255, 0.3) 50%, transparent 53%);
-    mix-blend-mode: screen;
+      linear-gradient(to bottom, transparent 32%, rgba(255, 255, 255, 0.9) 33.5%, rgba(120, 135, 155, 0.6) 35%, transparent 37%),
+      linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.5) 50%, transparent 52%);
   }
   /* the sweep: a bright band that crosses the stone once on mount */
   .gem-body::before {
     content: "";
     position: absolute;
     inset: -40%;
-    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.95) 50%, transparent 62%);
+    background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 1) 50%, transparent 60%);
     transform: translateX(-120%);
     animation: gem-shine 1100ms cubic-bezier(0.4, 0, 0.2, 1) 1 both;
     animation-delay: calc(var(--gem-delay, 0ms) + 250ms);
   }
-  .gem-static,
   .gem-static .gem-body::before {
     animation: none;
+    transform: translateX(120%);
   }
   @keyframes gem-shine {
     from { transform: translateX(-120%); }
     to { transform: translateX(120%); }
   }
-  @keyframes gem-glow {
-    0%, 100% { filter: drop-shadow(0 0 2.5px var(--green-glow)) drop-shadow(0 0 6px rgba(29, 185, 84, 0.35)); }
-    50% { filter: drop-shadow(0 0 3.5px var(--green-glow)) drop-shadow(0 0 9px rgba(29, 185, 84, 0.55)); }
-  }
   @media (prefers-reduced-motion: reduce) {
-    .gem, .gem-body::before { animation: none; }
-    .gem-body::before { transform: translateX(120%); }
+    .gem-body::before { animation: none; transform: translateX(120%); }
   }
 
   /* Frosted surfaces */
