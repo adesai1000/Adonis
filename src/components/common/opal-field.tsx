@@ -36,6 +36,15 @@ const DAMP = 0.74
 const PAD = 0.6
 
 /**
+ * How far an OpalField's canvas extends past its field on every side, in CSS
+ * px. Most of that fringe is transparent, but a host that clips (a scroll
+ * box) must still leave this much room, or the overflow makes it scrollable.
+ */
+export function opalCanvasMargin(size: number): number {
+  return Math.ceil(Math.max(0, size) * PAD)
+}
+
+/**
  * One WebGL canvas that renders every gem in `gems` in its own cell. Idle it
  * floats on simplex noise; the cursor leans and bulges the nearest stones
  * with spring damping; a tap ripples. Draws only while on screen. Falls back
@@ -60,13 +69,18 @@ export function OpalField({
   const failedRef = useRef(false)
   // The canvas is larger than the field by this much on every side so the
   // halo of an edge stone isn't clipped into a square.
-  const margin = Math.ceil(Math.max(0, ...gems.map((g) => g.size)) * PAD)
+  const margin = opalCanvasMargin(Math.max(0, ...gems.map((g) => g.size)))
   const cw = width + margin * 2
   const ch = height + margin * 2
 
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
+    // The shader writes straight (colour, coverage); blending that with
+    // SRC_ALPHA / ONE_MINUS_SRC_ALPHA onto a transparent clear leaves
+    // premultiplied pixels in the buffer, so the canvas must be declared
+    // premultiplied. Declared straight, the compositor would multiply by
+    // alpha a second time: halo dim on dark cards, a grey ring on light ones.
     const gl = canvas.getContext("webgl", {
       alpha: true,
       premultipliedAlpha: true,
@@ -76,11 +90,14 @@ export function OpalField({
       powerPreference: "low-power",
     })
     if (!gl || gl.isContextLost()) {
+      console.warn("[opal] WebGL unavailable; using the flat fallback disc")
       failedRef.current = true
       canvas.style.display = "none"
       document.documentElement.classList.add("no-webgl")
+      document.documentElement.dataset.opal = "no-context"
       return
     }
+    document.documentElement.dataset.opal = "webgl"
     canvas.style.display = ""
     document.documentElement.classList.remove("no-webgl")
 
@@ -106,10 +123,11 @@ export function OpalField({
         throw new Error(gl.getProgramInfoLog(program) || "link failed")
       }
     } catch (e) {
-      console.warn("[opal] falling back to CSS stones:", e)
+      console.warn("[opal] shader failed; using the flat fallback disc:", e)
       failedRef.current = true
       canvas.style.display = "none"
       document.documentElement.classList.add("no-webgl")
+      document.documentElement.dataset.opal = `shader-error: ${e instanceof Error ? e.message : String(e)}`
       return
     }
     gl.useProgram(program)
@@ -129,12 +147,11 @@ export function OpalField({
       ripple: U("u_ripple"),
       rippleAt: U("u_rippleAt"),
       birth: U("u_birth"),
-      px: U("u_px"),
       detail: U("u_detail"),
     }
     gl.disable(gl.DEPTH_TEST)
     gl.enable(gl.BLEND)
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA)
 
     // ── state ──
     const dpr = Math.min(window.devicePixelRatio || 1, 2)
@@ -219,7 +236,6 @@ export function OpalField({
         gl.uniform1f(u.ripple, rip >= 0 && rip < 2.5 ? rip : -1)
         gl.uniform2f(u.rippleAt, st.rippleAt[0], st.rippleAt[1])
         gl.uniform1f(u.birth, Math.max(0, (now - mountedAt - g.delayMs) / 1000))
-        gl.uniform1f(u.px, 2 / vs)
         // identical material to /opal.html at every size
         gl.uniform1f(u.detail, 1.0)
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4)
@@ -343,7 +359,7 @@ export function Opal({
       style={{ position: "relative", display: "inline-block", width: size, height: size }}
     >
       <OpalField gems={gems} width={size} height={size}>
-        <span className="gem gem-fallback gem-static">
+        <span className="gem-fallback">
           <span className="gem-body" />
         </span>
       </OpalField>

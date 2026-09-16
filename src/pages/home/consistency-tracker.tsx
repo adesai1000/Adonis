@@ -10,7 +10,12 @@ import {
 } from "@/lib/consistency"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
-import { Opal, OpalField, type OpalGem } from "@/components/common/opal-field"
+import {
+  Opal,
+  OpalField,
+  opalCanvasMargin,
+  type OpalGem,
+} from "@/components/common/opal-field"
 
 /** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
@@ -39,17 +44,13 @@ function tileTitle(day: ConsistencyDay): string {
 
 /**
  * A complete day's cell. The stone itself is drawn by the WebGL field laid
- * over the grid; this keeps the cell's place (and its tooltip). The CSS gem
+ * over the grid; this keeps the cell's place (and its tooltip). The disc
  * inside is the fallback for browsers without WebGL and is hidden otherwise.
  */
-function GemCell({ title, delayMs }: { title: string; delayMs: number }) {
+function GemCell({ title }: { title: string }) {
   return (
-    <span
-      className="gem-cell relative"
-      title={title}
-      style={{ "--gem-delay": `${delayMs}ms` } as React.CSSProperties}
-    >
-      <span className="gem gem-fallback">
+    <span className="gem-cell relative" title={title}>
+      <span className="gem-fallback">
         <span className="gem-body" />
       </span>
     </span>
@@ -74,60 +75,29 @@ function parseDate(value: string): Date | null {
 }
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""]
-const TILE_SIZE = 30
-const GAP = 6
+const TILE_SIZE = 36
+const GAP = 7
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
 const FUTURE_PEEK_WEEKS = 3
+/**
+ * How far a stone's halo is still visible past its cell, in CSS px. The grid
+ * keeps this much room on its left and right inside the scrolled content, so
+ * it scrolls with the grid instead of letting scrolled-in tiles paint over
+ * the day labels. (The OpalField canvas reaches further, but that fringe is
+ * transparent and the scroll box simply clips it sideways.)
+ */
+const HALO_ROOM = 8
+/**
+ * Below the grid the scroll box must fit the whole canvas, or the overflow
+ * would make the box scrollable vertically; that padding doubles as the gap
+ * to the legend. The canvas's top edge already sits inside the month row.
+ */
+const CANVAS_PAD = opalCanvasMargin(TILE_SIZE)
 
 export function ConsistencyTracker() {
   const { foodLog, workoutLog, cardioLog, sleepLog, settings } = useStore()
   const scrollRef = useRef<HTMLDivElement>(null)
-  const cardRef = useRef<HTMLDivElement>(null)
-
-  // Tilt the opals as the page moves. Scroll sets a target; a damped spring
-  // chases it each frame, so the colour play glides while you scroll and
-  // settles with a little overshoot when you stop, instead of snapping.
-  useEffect(() => {
-    const card = cardRef.current
-    if (!card) return
-    const STIFFNESS = 0.08
-    const DAMPING = 0.78
-    let target = 0
-    let value = 0
-    let velocity = 0
-    let raf = 0
-
-    const readTarget = () =>
-      window.scrollY * 0.18 + (scrollRef.current?.scrollLeft ?? 0) * 0.12
-
-    const step = () => {
-      raf = 0
-      const force = (target - value) * STIFFNESS
-      velocity = (velocity + force) * DAMPING
-      value += velocity
-      card.style.setProperty("--opal-shift", `${value.toFixed(2)}px`)
-      if (Math.abs(target - value) > 0.05 || Math.abs(velocity) > 0.05) {
-        raf = requestAnimationFrame(step)
-      }
-    }
-    const onScroll = () => {
-      target = readTarget()
-      if (!raf) raf = requestAnimationFrame(step)
-    }
-
-    target = readTarget()
-    value = target
-    card.style.setProperty("--opal-shift", `${value.toFixed(2)}px`)
-    window.addEventListener("scroll", onScroll, { passive: true })
-    const grid = scrollRef.current
-    grid?.addEventListener("scroll", onScroll, { passive: true })
-    return () => {
-      window.removeEventListener("scroll", onScroll)
-      grid?.removeEventListener("scroll", onScroll)
-      if (raf) cancelAnimationFrame(raf)
-    }
-  }, [])
 
   const stats = useMemo(() => {
     const input = { foodLog, workoutLog, cardioLog, sleepLog }
@@ -167,15 +137,18 @@ export function ConsistencyTracker() {
     return labels
   }, [weeks])
 
-  // Auto-scroll so today's column is in view with a little of the future showing.
+  // Auto-scroll so today's column is in view with a little of the future
+  // showing. Land on a column boundary: the first visible column sits just
+  // past the previous one's right edge with its own halo room showing, so no
+  // sliver of a half-scrolled tile sits beside the day labels.
   const todayCol = Math.floor(Math.max(0, stats.todayIndex) / 7)
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
     const raf = requestAnimationFrame(() => {
-      const target =
-        (todayCol + 1 + FUTURE_PEEK_WEEKS) * COL_WIDTH - el.clientWidth
-      el.scrollLeft = Math.max(0, target)
+      const fit = Math.floor(el.clientWidth / COL_WIDTH)
+      const first = Math.max(0, todayCol + FUTURE_PEEK_WEEKS + 1 - fit)
+      el.scrollLeft = first === 0 ? 0 : HALO_ROOM + first * COL_WIDTH - GAP
     })
     return () => cancelAnimationFrame(raf)
   }, [todayCol, weeks.length])
@@ -206,7 +179,7 @@ export function ConsistencyTracker() {
   const gridHeight = 7 * TILE_SIZE + 6 * GAP
 
   return (
-    <Card ref={cardRef} className="gap-4 py-5">
+    <Card className="gap-4 py-5">
       <CardHeader className="flex flex-row items-center gap-3 px-5">
         <span className="grid size-6 place-items-center rounded-lg bg-muted text-ink-2">
           <Grid3x3 className="size-3.5" />
@@ -215,7 +188,8 @@ export function ConsistencyTracker() {
       </CardHeader>
 
       <CardContent className="px-5">
-        <div className="flex gap-2">
+        {/* no flex gap: the grid's own halo room is the gap to the labels */}
+        <div className="flex">
           <div
             className="flex shrink-0 flex-col text-[11px] text-muted-foreground"
             style={{ paddingTop: TILE_SIZE + 4, gap: GAP }}
@@ -227,8 +201,19 @@ export function ConsistencyTracker() {
             ))}
           </div>
 
-          <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto">
-            <div style={{ width: weeks.length * COL_WIDTH - GAP }}>
+          {/* Sideways only: a vertical swipe over the grid scrolls the page. */}
+          <div
+            ref={scrollRef}
+            className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
+            style={{ paddingBottom: CANVAS_PAD }}
+          >
+            <div
+              style={{
+                width: gridWidth + 2 * HALO_ROOM,
+                paddingLeft: HALO_ROOM,
+                paddingRight: HALO_ROOM,
+              }}
+            >
               <div className="relative" style={{ height: TILE_SIZE }}>
                 {monthLabels.map((label, wi) =>
                   label ? (
@@ -256,12 +241,7 @@ export function ConsistencyTracker() {
                 {weeks.flatMap((week, wi) =>
                   week.map((day, di) =>
                     day.level === "diamond" ? (
-                      <GemCell
-                        key={`${wi}-${di}`}
-                        title={tileTitle(day)}
-                        // sweep left → right across the visible weeks
-                        delayMs={Math.max(0, wi - todayCol + 12) * 55 + di * 20}
-                      />
+                      <GemCell key={`${wi}-${di}`} title={tileTitle(day)} />
                     ) : (
                       <span
                         key={`${wi}-${di}`}
@@ -276,24 +256,29 @@ export function ConsistencyTracker() {
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
           <span>
             {stats.trackedDays} day{stats.trackedDays === 1 ? "" : "s"} tracked in{" "}
             {weekCount} week{weekCount === 1 ? "" : "s"} · longest streak{" "}
             {stats.longestStreak} day{stats.longestStreak === 1 ? "" : "s"}
           </span>
-          <span className="flex items-center gap-3">
+          {/* The scale: how much of food / sleep / workout a day covered. */}
+          <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+            <span className="microlabel">food · sleep · workout</span>
             <span className="flex items-center gap-1.5">
-              <span className="size-[11px] rounded-[3px] bg-[var(--heat-2)]" /> one logged
+              <span className="size-[11px] rounded-[3px] bg-[var(--heat-2)]" /> 1 logged
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-[11px] rounded-[3px] bg-[var(--heat-4)]" /> two
+              <span className="size-[11px] rounded-[3px] bg-[var(--heat-4)]" /> 2 logged
             </span>
-            <span className="flex items-center gap-1.5">
-              <LegendStone tier={1} /> food + sleep + workout
+            <span
+              className="flex items-center gap-1.5"
+              title="Food, sleep and a workout all logged (food and sleep on a weekend)"
+            >
+              <LegendStone tier={1} /> full day
             </span>
-            <span className="flex items-center gap-1.5">
-              <LegendStone tier={2} /> + steps
+            <span className="flex items-center gap-1.5" title="A full day with steps logged too">
+              <LegendStone tier={2} /> full day + steps
             </span>
           </span>
         </div>
@@ -304,5 +289,5 @@ export function ConsistencyTracker() {
 
 /** A single stone for the legend — the same component as the demo stone. */
 function LegendStone({ tier }: { tier: 1 | 2 }) {
-  return <Opal size={24} tier={tier} seed={tier * 17} className="align-middle" />
+  return <Opal size={30} tier={tier} seed={tier * 17} className="align-middle" />
 }

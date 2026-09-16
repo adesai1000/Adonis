@@ -15,5 +15,14 @@ if (import.meta.env.PROD && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("/sw.js").catch(() => {})
   })
+  // A fresh deploy installs a new worker that takes control (skipWaiting +
+  // clients.claim). Reload once so the page runs the build it belongs to,
+  // instead of the old one until the user thinks to close the app.
+  let reloaded = false
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (reloaded) return
+    reloaded = true
+    window.location.reload()
+  })
 }
 

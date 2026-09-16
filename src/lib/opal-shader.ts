@@ -26,7 +26,6 @@ uniform float u_seed;     // per-gem variation
 uniform float u_ripple;   // seconds since tap, < 0 when idle
 uniform vec2  u_rippleAt; // tap point in gem uv, -1..1
 uniform float u_birth;    // seconds since mount (light sweep)
-uniform float u_px;       // one device pixel in uv units, for edge AA
 uniform float u_detail;   // 1 at demo size, down to ~0.3 for tracker tiles
 
 // ── 3D simplex noise (Ashima Arts / Stefan Gustavson, MIT) ──
@@ -83,11 +82,11 @@ float fbm(vec3 p) {
 // ── palette: mint → sky → violet → gold → coral, cyclic ──
 vec3 pal(float t) {
   t = fract(t);
-  vec3 mint   = vec3(0.35, 0.96, 0.60);
-  vec3 sky    = vec3(0.30, 0.66, 1.00);
-  vec3 violet = vec3(0.66, 0.40, 1.00);
-  vec3 gold   = vec3(1.00, 0.86, 0.50);
-  vec3 coral  = vec3(1.00, 0.50, 0.58);
+  vec3 mint   = vec3(0.20, 0.98, 0.55);
+  vec3 sky    = vec3(0.16, 0.58, 1.00);
+  vec3 violet = vec3(0.62, 0.30, 1.00);
+  vec3 gold   = vec3(1.00, 0.80, 0.32);
+  vec3 coral  = vec3(1.00, 0.40, 0.52);
   float s = t * 5.0;
   vec3 c = mix(mint, sky, smoothstep(0.0, 1.0, s));
   c = mix(c, violet, smoothstep(1.0, 2.0, s));
@@ -144,7 +143,7 @@ void main() {
   vec3 ro = vec3(0.0, 0.0, 3.2);
   vec3 rd = normalize(vec3(uv * 0.62, -1.0));
 
-  // raymarch, tracking closest approach for the halo and edge AA
+  // raymarch, tracking closest approach for the halo
   float d = 0.0, nearest = 1e9;
   vec3 p = ro; bool hit = false;
   for (int i = 0; i < 56; i++) {
@@ -184,7 +183,8 @@ void main() {
     // never show up as a square
     float edgeR = max(abs(v_uv.x), abs(v_uv.y));
     glow *= 1.0 - smoothstep(0.55, 0.95, edgeR);
-    gl_FragColor = vec4(haloTint * glow, glow);   // premultiplied
+    // straight alpha: colour is the tint, coverage is the glow
+    gl_FragColor = vec4(haloTint, glow);
     return;
   }
 
@@ -214,7 +214,7 @@ void main() {
   float phase = thick * 1.5 + (1.0 - NoV) * 1.2 + warmth * 0.45 + rip * 0.35;
   vec3 irid = vec3(pal(phase + 0.04).r, pal(phase).g, pal(phase - 0.04).b);
   // small stones: richer colour, since there are no pixels for subtlety
-  float sat = mix(1.55, 1.0, u_detail);
+  float sat = 1.45;
   irid = mix(vec3(dot(irid, vec3(0.333))), irid, sat);
 
   // a second colour layer seen deeper inside the stone (offset along the
@@ -225,7 +225,7 @@ void main() {
 
   // play-of-colour: large flowing cells, plus vein-like flow lines where
   // the colour bands meet, like the streaks in a crystal opal
-  float cells = smoothstep(mix(-0.5, -0.25, u_detail), mix(0.1, 0.3, u_detail), fbm(gp * 1.45 * fq + u_seed * 2.0));
+  float cells = smoothstep(-0.45, 0.15, fbm(gp * 1.45 * fq + u_seed * 2.0));
   float veins = smoothstep(0.86, 0.985, 1.0 - abs(snoise(gp * 3.6 * fq + u_seed + vec3(0.0, t * 0.03, 0.0))));
   float cells2 = smoothstep(-0.15, 0.35, fbm(deep * 2.1 * fq + 9.0));
   // flashes strengthen as the surface turns away from the eye
@@ -233,18 +233,18 @@ void main() {
 
   // glassy body: translucent, faintly milky, lit from within
   vec3 body = mix(vec3(0.84, 0.90, 0.97), vec3(0.97, 0.91, 0.82), warmth);
-  vec3 col = body * (0.42 + 0.45 * diff) * mix(0.75, 1.0, u_detail);
+  vec3 col = body * (0.42 + 0.45 * diff) * 0.7;
   col = mix(col, irid2 * (0.7 + 0.35 * diff), cells2 * 0.7 * tilt);    // deep layer
   // small stones: colour everywhere, a touch darker so it doesn't wash to white
-  col = mix(col, irid * mix(0.72, 0.95 + 0.4 * diff, u_detail), clamp(cells * mix(1.2, 0.9, u_detail) * tilt, 0.0, 1.0)); // surface layer
+  col = mix(col, irid * (0.8 + 0.35 * diff), clamp(cells * 1.15 * tilt, 0.0, 1.0)); // surface layer
   col += irid * veins * 0.22 * tilt;                                        // flow lines
   col = mix(col, irid, 0.3 * F);                                            // grazing wash
   // milky haze over everything, thinner where the stone is thickest
-  col = mix(col, vec3(0.94, 0.96, 0.99), (0.12 * (1.0 - NoV) + 0.12) * u_detail);
+  col = mix(col, vec3(0.94, 0.96, 0.99), 0.08 * (1.0 - NoV) + 0.04);
 
   // glass: a broad soft window reflection up-left, then two sharp speculars
   vec3 Lw = normalize(vec3(-0.35, 0.6, 0.85));
-  float hl = mix(0.4, 1.0, u_detail);          // highlights shrink with the stone
+  float hl = 0.75;
   float windowR = pow(max(dot(reflect(-Lw, n), v), 0.0), 7.0) * 0.32 * hl;
   col += vec3(1.0) * windowR;
   col += (vec3(1.0) * spec1 * 1.2 + vec3(0.95, 0.97, 1.0) * spec2) * hl;
@@ -256,9 +256,6 @@ void main() {
   // gentle tone map so stacked highlights roll off instead of clipping
   col = col / (1.0 + col * 0.22);
 
-  // edge anti-aliasing from the silhouette distance
-  float edge = 1.0 - smoothstep(0.0, u_px * 2.0, max(nearest, 0.0));
-  float a = max(edge, 0.999);
-  gl_FragColor = vec4(col * a, a);
+  gl_FragColor = vec4(clamp(col, 0.0, 1.0), 1.0);
 }
 `
