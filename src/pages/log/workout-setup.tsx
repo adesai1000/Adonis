@@ -8,7 +8,7 @@ import { Combobox, type ComboOption } from "@/components/common/combobox"
 import { DateTimePicker } from "@/components/common/datetime-picker"
 import { DragList } from "@/components/common/drag-list"
 import { EmptyState, FieldError } from "@/components/common/bits"
-import { isoNow } from "@/lib/calc"
+import { isoNow, newLoggedExercise } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
 import type { ActiveSession, LoggedExercise } from "@/lib/types"
@@ -130,12 +130,9 @@ export function WorkoutSetup() {
       toast.error("Add at least one exercise")
       return
     }
-    const loggedExercises: LoggedExercise[] = preview.map((ex) => ({
-      exerciseId: ex.id,
-      name: ex.name,
-      muscleGroup: ex.muscleGroup,
-      sets: [{ reps: 0, weight: 0, unit: settings.weightUnit }],
-    }))
+    const loggedExercises: LoggedExercise[] = preview.map((ex) =>
+      newLoggedExercise(ex, settings.weightUnit)
+    )
     const session: ActiveSession = {
       startedAt: isoNow(),
       datetime: draft.datetime,

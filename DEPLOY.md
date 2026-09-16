@@ -3,8 +3,6 @@
 Adonis runs entirely in the browser (localStorage). Two small serverless
 functions add the extras:
 
-- `api/deepseek.ts` – proxies the AI Coach request so your DeepSeek key stays
-  on the server (never shipped to the browser).
 - `api/sync.ts` – a tiny key/value store so the same data can be shared between
   your phone and computer using a shared "sync code".
 - `api/keepalive.ts` – pinged once a day by a Vercel Cron Job (`vercel.json`) so
@@ -24,15 +22,7 @@ git push
 - Framework preset is auto-detected as **Vite** (build `npm run build`, output `dist`).
 - Click Deploy.
 
-## 3. Add the DeepSeek key (for the AI Coach)
-
-In the Vercel project → **Settings → Environment Variables**, add:
-
-| Name           | Value                         |
-| -------------- | ----------------------------- |
-| `DEEPSEEK_API` | your DeepSeek API key (`sk-…`) |
-
-## 4. Add a KV store (for device sync)
+## 3. Add a KV store (for device sync)
 
 In the Vercel project → **Storage → Create Database → Upstash for Redis** (free
 tier), and connect it to the project with the default `KV` prefix. Vercel
@@ -64,11 +54,11 @@ The archived data is kept as a backup in the Upstash console (*inactive
 databases → Restore*), but it is at least a month old, so only restore it if no
 device has a newer copy.
 
-## 5. Redeploy
+## 4. Redeploy
 
 Trigger a redeploy so the new env vars take effect (Deployments → ⋯ → Redeploy).
 
-## 6. Sync your devices
+## 5. Sync your devices
 
 1. Open the deployed URL on your Mac. Go to **Settings → Sync**, generate or type
    a sync code, tap **Use code**, then **Push to cloud** (or turn on **Auto-sync**).
@@ -85,8 +75,6 @@ npm install
 npm run dev
 ```
 
-- The AI Coach works locally via the Vite dev proxy as long as `DEEPSEEK_API` is
-  in your local `.env` (already gitignored).
 - Sync works locally too, backed by an in-memory store in the dev server
   (resets when you restart `npm run dev`) — enough to try the flow.
 - The cron keep-alive only runs on Vercel; nothing to do locally.

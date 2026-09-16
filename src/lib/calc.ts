@@ -7,6 +7,7 @@ import {
 import type {
   CardioEntry,
   DistanceUnit,
+  ExerciseCardio,
   FoodEntry,
   LoggedExercise,
   WeightUnit,
@@ -114,6 +115,63 @@ export function sessionRepCount(s: WorkoutSession): number {
     (n, ex) => n + ex.sets.reduce((r, st) => r + st.reps, 0),
     0
   )
+}
+
+// ───────────────────────────── in-workout cardio ─────────────────────────────
+export const CARDIO_MUSCLE_GROUP = "Cardio Machines"
+
+/** Exercises in this group are logged by time/distance instead of sets. */
+export function isCardioExercise(muscleGroup: string): boolean {
+  return muscleGroup === CARDIO_MUSCLE_GROUP
+}
+
+/** A fresh, unlogged exercise entry for a session. */
+export function newLoggedExercise(
+  ex: { id: string; name: string; muscleGroup: string },
+  weightUnit: WeightUnit
+): LoggedExercise {
+  const base = { exerciseId: ex.id, name: ex.name, muscleGroup: ex.muscleGroup }
+  return isCardioExercise(ex.muscleGroup)
+    ? { ...base, sets: [], cardio: { durationSec: 0 } }
+    : { ...base, sets: [{ reps: 0, weight: 0, unit: weightUnit }] }
+}
+
+/** Seconds on the clock, including a currently running timer. */
+export function cardioSeconds(c: ExerciseCardio | undefined, now = Date.now()): number {
+  if (!c) return 0
+  let sec = c.durationSec || 0
+  if (c.timerStartedAt) {
+    const t = new Date(c.timerStartedAt).getTime()
+    if (isFinite(t)) sec += Math.max(0, (now - t) / 1000)
+  }
+  return Math.floor(sec)
+}
+
+export function sessionCardioSeconds(s: WorkoutSession): number {
+  return s.exercises.reduce((n, ex) => n + cardioSeconds(ex.cardio), 0)
+}
+
+export function sessionCardioDistance(s: WorkoutSession, unit: DistanceUnit): number {
+  return s.exercises.reduce((n, ex) => {
+    const c = ex.cardio
+    if (!c || !c.distance) return n
+    return n + convertDistance(c.distance, c.distanceUnit ?? unit, unit)
+  }, 0)
+}
+
+/** Whether anything real was logged: a non-empty set, time on the clock, or distance. */
+export function hasLoggedWork(ex: LoggedExercise): boolean {
+  if (ex.sets.some((st) => st.reps > 0 || st.weight > 0)) return true
+  return cardioSeconds(ex.cardio) > 0 || (ex.cardio?.distance ?? 0) > 0
+}
+
+/** Ready-to-save copy: empty sets dropped, running timer folded into the duration. */
+export function finalizeLoggedExercise(ex: LoggedExercise): LoggedExercise {
+  const sets = ex.sets.filter((st) => st.reps > 0 || st.weight > 0)
+  if (!ex.cardio) return { ...ex, sets }
+  const { timerStartedAt: _running, ...rest } = ex.cardio
+  void _running
+  return { ...ex, sets, cardio: { ...rest, durationSec: cardioSeconds(ex.cardio) } }
 }
 
 // ───────────────────────────── duration / time ─────────────────────────────

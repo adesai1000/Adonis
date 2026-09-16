@@ -13,9 +13,6 @@ export const STORAGE_KEYS = {
   activeSession: "wt_active_session",
   uiPrefs: "wt_ui_prefs",
   nav: "wt_nav",
-  aiSummary: "wt_ai_summary",
-  aiCoachNotes: "wt_ai_coach_notes",
-  aiCoachNoteHistory: "wt_ai_coach_note_history",
   demoLoaded: "wt_demo_loaded",
   syncCode: "wt_sync_code",
   syncAuto: "wt_sync_auto",
@@ -25,6 +22,13 @@ export const STORAGE_KEYS = {
 
 /** All app-owned keys (used for storage-size estimate + clear). */
 export const ALL_STORAGE_KEYS: string[] = Object.values(STORAGE_KEYS)
+
+/** Keys written by features that no longer exist; removed on startup. */
+export const LEGACY_STORAGE_KEYS: string[] = [
+  "wt_ai_summary",
+  "wt_ai_coach_notes",
+  "wt_ai_coach_note_history",
+]
 
 export function readJSON<T>(key: string, fallback: T): T {
   try {

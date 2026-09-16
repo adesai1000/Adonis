@@ -26,6 +26,7 @@ import { useStore } from "@/store/store"
 import type { CardKey, GraphTab, HomeSection, TrendRange } from "@/lib/types"
 
 const CARD_LABELS: Record<CardKey, string> = {
+  strain: "Strain",
   volume: "Volume",
   reps: "Reps",
   calories: "Calories",
@@ -47,7 +48,6 @@ const HOME_SECTION_LABELS: Record<HomeSection, string> = {
   cards: "Trend cards",
   graph: "Trends graph",
   tracker: "Consistency tracker",
-  aicoach: "AI Coach",
 }
 
 const RANGES: TrendRange[] = [7, 14, 30]

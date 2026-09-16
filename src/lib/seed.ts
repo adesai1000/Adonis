@@ -233,6 +233,7 @@ export const defaultUiPrefs: UiPrefs = {
   cardOrder: [
     "calories",
     "protein",
+    "strain",
     "volume",
     "bodyweight",
     "reps",
@@ -244,6 +245,7 @@ export const defaultUiPrefs: UiPrefs = {
   cardVisibility: {
     calories: true,
     protein: true,
+    strain: true,
     volume: true,
     bodyweight: true,
     reps: false,
@@ -254,5 +256,5 @@ export const defaultUiPrefs: UiPrefs = {
   },
   graphTabOrder: ["bodyweight", "calories", "protein"],
   graphTabVisibility: { bodyweight: true, calories: true, protein: true },
-  homeSectionOrder: ["cards", "graph", "tracker", "aicoach"],
+  homeSectionOrder: ["cards", "graph", "tracker"],
 }

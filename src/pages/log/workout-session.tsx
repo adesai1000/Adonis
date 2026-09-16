@@ -43,14 +43,21 @@ import {
 } from "@/components/ui/toggle-group"
 import { Combobox, type ComboOption } from "@/components/common/combobox"
 import {
+  cardioSeconds,
+  finalizeLoggedExercise,
   fmt,
   formatDate,
   formatDuration,
+  hasLoggedWork,
+  isCardioExercise,
+  newLoggedExercise,
   sessionVolume,
 } from "@/lib/calc"
+import { CardioExercisePanel } from "./cardio-exercise-panel"
 import { useStore } from "@/store/store"
 import type {
   ActiveSession as ActiveSessionType,
+  ExerciseCardio,
   LoggedExercise,
   WeightUnit,
   WorkoutSession as WorkoutSessionType,
@@ -149,6 +156,10 @@ export function WorkoutSession() {
     patchCurrentExercise((ex) => ({ ...ex, notes }))
   }
 
+  function setCardio(cardio: ExerciseCardio) {
+    patchCurrentExercise((ex) => ({ ...ex, cardio }))
+  }
+
   function goTo(index: number) {
     setActiveSession((s) => {
       if (!s) return s
@@ -162,12 +173,7 @@ export function WorkoutSession() {
     if (!ex) return
     setActiveSession((s) => {
       if (!s) return s
-      const logged: LoggedExercise = {
-        exerciseId: ex.id,
-        name: ex.name,
-        muscleGroup: ex.muscleGroup,
-        sets: [{ reps: 0, weight: 0, unit: settings.weightUnit }],
-      }
+      const logged = newLoggedExercise(ex, settings.weightUnit)
       const exs = [...s.exercises, logged]
       return { ...s, exercises: exs, currentIndex: exs.length - 1 }
     })
@@ -187,16 +193,13 @@ export function WorkoutSession() {
   function finishWorkout() {
     if (!activeSession) return
     // Keep only what was actually logged: drop empty sets (0 reps AND 0 weight)
-    // and any exercise left with no real sets. You should never be forced to
-    // log every exercise in a routine to save the session.
+    // and any exercise with no real sets or cardio time. You should never be
+    // forced to log every exercise in a routine to save the session.
     const loggedExercises = activeSession.exercises
-      .map((ex) => ({
-        ...ex,
-        sets: ex.sets.filter((st) => st.reps > 0 || st.weight > 0),
-      }))
-      .filter((ex) => ex.sets.length > 0)
+      .map(finalizeLoggedExercise)
+      .filter(hasLoggedWork)
     if (loggedExercises.length === 0) {
-      toast.error("Log at least one set before saving")
+      toast.error("Log at least one set or some cardio before saving")
       setFinishOpen(false)
       return
     }
@@ -215,9 +218,7 @@ export function WorkoutSession() {
 
   const total = activeSession.exercises.length
   // How many exercises actually have a logged set (what will be saved).
-  const loggedExerciseCount = activeSession.exercises.filter((ex) =>
-    ex.sets.some((st) => st.reps > 0 || st.weight > 0)
-  ).length
+  const loggedExerciseCount = activeSession.exercises.filter(hasLoggedWork).length
   const current = activeSession.exercises[activeSession.currentIndex]
   const progressPct =
     total > 0 ? ((activeSession.currentIndex + 1) / total) * 100 : 0
@@ -226,6 +227,7 @@ export function WorkoutSession() {
   const previous = current
     ? findPreviousSets(workoutLog, current.exerciseId)
     : null
+  const currentIsCardio = !!current && isCardioExercise(current.muscleGroup)
 
   const sessionForVolume: WorkoutSessionType = {
     id: "preview",
@@ -286,6 +288,14 @@ export function WorkoutSession() {
                   {formatDate(previous.datetime)}
                 </p>
                 <div className="flex flex-wrap gap-1.5">
+                  {previous.cardio && (
+                    <span className="rounded-lg bg-card px-2 py-1 font-mono text-xs tabular-nums">
+                      {formatDuration(cardioSeconds(previous.cardio))}
+                      {previous.cardio.distance
+                        ? ` · ${fmt(previous.cardio.distance)} ${previous.cardio.distanceUnit === "km" ? "km" : "mi"}`
+                        : ""}
+                    </span>
+                  )}
                   {previous.sets.map((st, i) => (
                     <span
                       key={i}
@@ -301,46 +311,54 @@ export function WorkoutSession() {
             )}
           </div>
 
-          {/* Set rows */}
-          <div className="space-y-2">
-            <div className="grid grid-cols-[2rem_1fr_1fr_auto] items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
-              <span className="text-center">Set</span>
-              <span className="text-center">Reps</span>
-              <span className="text-center">Weight</span>
-              <span className="text-center">Unit</span>
+          {/* Cardio machines log time + distance; everything else logs sets */}
+          {currentIsCardio ? (
+            <CardioExercisePanel
+              cardio={current.cardio ?? { durationSec: 0 }}
+              distanceUnit={settings.distanceUnit}
+              onChange={setCardio}
+            />
+          ) : (
+            <div className="space-y-2">
+              <div className="grid grid-cols-[2rem_1fr_1fr_auto] items-center gap-2 px-1 text-xs font-medium text-muted-foreground">
+                <span className="text-center">Set</span>
+                <span className="text-center">Reps</span>
+                <span className="text-center">Weight</span>
+                <span className="text-center">Unit</span>
+              </div>
+              {current.sets.map((st, i) => (
+                <SetRow
+                  key={i}
+                  index={i}
+                  set={st}
+                  onReps={(reps) => patchSet(i, { reps })}
+                  onWeight={(weight) => patchSet(i, { weight })}
+                  onUnit={(unit) => patchSet(i, { unit })}
+                />
+              ))}
+              <div className="flex gap-2 pt-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 flex-1"
+                  onClick={addSet}
+                >
+                  <Plus className="size-4" />
+                  Add set
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="h-11 flex-1"
+                  onClick={removeLastSet}
+                  disabled={current.sets.length <= 1}
+                >
+                  <Minus className="size-4" />
+                  Remove set
+                </Button>
+              </div>
             </div>
-            {current.sets.map((st, i) => (
-              <SetRow
-                key={i}
-                index={i}
-                set={st}
-                onReps={(reps) => patchSet(i, { reps })}
-                onWeight={(weight) => patchSet(i, { weight })}
-                onUnit={(unit) => patchSet(i, { unit })}
-              />
-            ))}
-            <div className="flex gap-2 pt-1">
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 flex-1"
-                onClick={addSet}
-              >
-                <Plus className="size-4" />
-                Add set
-              </Button>
-              <Button
-                type="button"
-                variant="outline"
-                className="h-11 flex-1"
-                onClick={removeLastSet}
-                disabled={current.sets.length <= 1}
-              >
-                <Minus className="size-4" />
-                Remove set
-              </Button>
-            </div>
-          </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1.5">
@@ -570,14 +588,14 @@ function SummaryStat({
 function findPreviousSets(
   log: WorkoutSessionType[],
   exerciseId: string
-): { datetime: string; sets: WorkoutSet[] } | null {
+): { datetime: string; sets: WorkoutSet[]; cardio?: ExerciseCardio } | null {
   const sorted = [...log].sort((a, b) =>
     a.datetime < b.datetime ? 1 : -1
   )
   for (const session of sorted) {
     const ex = session.exercises.find((e) => e.exerciseId === exerciseId)
-    if (ex && ex.sets.length > 0) {
-      return { datetime: session.datetime, sets: ex.sets }
+    if (ex && hasLoggedWork(ex)) {
+      return { datetime: session.datetime, sets: ex.sets, cardio: ex.cardio }
     }
   }
   return null

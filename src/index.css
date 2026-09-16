@@ -265,16 +265,47 @@
   body {
     @apply bg-background text-foreground font-sans antialiased;
     overscroll-behavior-y: none;
-    /* pastel mesh so the frosted surfaces have color to refract */
+    /* own stacking context so the mesh layer below can sit behind content
+       (z-index: -1) while still painting above the body background */
+    isolation: isolate;
+  }
+  /* pastel mesh so the frosted surfaces have color to refract. A fixed
+     pseudo-element rather than background-attachment: fixed, which iOS
+     ignores and which forces a full repaint on every scroll frame. */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
     background-image:
       radial-gradient(900px 520px at 85% -5%, rgba(29, 185, 84, 0.16), transparent 62%),
       radial-gradient(720px 520px at -10% 28%, rgba(29, 185, 84, 0.11), transparent 60%),
       radial-gradient(820px 620px at 72% 108%, rgba(15, 122, 56, 0.12), transparent 62%);
-    background-attachment: fixed;
   }
   /* the pastel mesh is a light-theme effect; dark stays a clean surface */
-  .dark body {
-    background-image: none;
+  .dark body::before {
+    display: none;
+  }
+  /* Controls are not text: no selection highlight or long-press callout when
+     tapping, swiping or dragging tabs, nav rails, buttons and drag handles. */
+  button,
+  nav,
+  label,
+  [role="tab"],
+  [role="tablist"],
+  [role="button"],
+  [data-slot="tabs-list"],
+  .pill-surface {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  button,
+  a,
+  [role="tab"],
+  [role="button"] {
+    touch-action: manipulation;
   }
   ::selection {
     background: var(--green);

@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { StoreProvider } from "@/store/store"
@@ -36,8 +37,23 @@ function CurrentPage() {
   }
 }
 
+/** Fade out the inline boot splash from index.html once the shell is on screen. */
+function useDismissSplash() {
+  useEffect(() => {
+    const el = document.getElementById("splash")
+    if (!el) return
+    // Let the first frame paint underneath before fading.
+    const raf = requestAnimationFrame(() => {
+      el.setAttribute("data-out", "")
+      window.setTimeout(() => el.remove(), 400)
+    })
+    return () => cancelAnimationFrame(raf)
+  }, [])
+}
+
 function Shell() {
   const { section } = useNav()
+  useDismissSplash()
   return (
     <div className="flex min-h-dvh flex-col">
       <Header />

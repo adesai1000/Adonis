@@ -12,6 +12,7 @@ import {
   Soup,
   Wheat,
   X,
+  Zap,
 } from "lucide-react"
 import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
 import { Button } from "@/components/ui/button"
@@ -47,10 +48,10 @@ import {
   GRAPH_TITLES,
 } from "./home/graph-data"
 import { ManageCards } from "./home/manage-cards"
-import { AICoach } from "./home/ai-coach"
 import { ConsistencyTracker } from "./home/consistency-tracker"
 
 const CARD_ICONS: Record<CardKey, React.ReactNode> = {
+  strain: <Zap className="size-4" />,
   volume: <Dumbbell className="size-4" />,
   reps: <Repeat className="size-4" />,
   calories: <Flame className="size-4" />,
@@ -348,7 +349,6 @@ export default function Page() {
     cards: renderCardsSection,
     graph: renderGraphSection,
     tracker: () => <ConsistencyTracker />,
-    aicoach: () => <AICoach />,
   }
 
   return (

@@ -67,11 +67,22 @@ export interface WorkoutSet {
   unit: WeightUnit
 }
 
+/** Time/distance logged for a cardio-machine exercise inside a session. */
+export interface ExerciseCardio {
+  durationSec: number
+  distance?: number
+  distanceUnit?: DistanceUnit
+  /** ISO start timestamp while the in-session timer is running. */
+  timerStartedAt?: string | null
+}
+
 export interface LoggedExercise {
   exerciseId: ID
   name: string // snapshot
   muscleGroup: string // snapshot
   sets: WorkoutSet[]
+  /** Present (instead of sets) for exercises in the "Cardio Machines" group. */
+  cardio?: ExerciseCardio
   notes?: string
 }
 
@@ -164,6 +175,7 @@ export interface Settings {
 
 // ───────────────────────────── Dashboard UI prefs ─────────────────────────────
 export type CardKey =
+  | "strain"
   | "volume"
   | "reps"
   | "calories"
@@ -175,8 +187,8 @@ export type CardKey =
   | "bodyweight"
 export type GraphTab = "bodyweight" | "calories" | "protein"
 
-/** The four reorderable sections of the Home page. */
-export type HomeSection = "cards" | "graph" | "tracker" | "aicoach"
+/** The reorderable sections of the Home page. */
+export type HomeSection = "cards" | "graph" | "tracker"
 
 export interface UiPrefs {
   cardOrder: CardKey[]

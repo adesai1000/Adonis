@@ -1,7 +1,7 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
-import { defineConfig, loadEnv, type Plugin } from "vite"
+import { defineConfig, type Plugin } from "vite"
 
 // Dev-only stand-in for the /api/sync serverless function. Keeps blobs in
 // memory (per dev-server lifetime) so device sync can be exercised locally.
@@ -40,34 +40,11 @@ function devSyncPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig(({ mode }) => {
-  // Load all env vars (including non-VITE_ ones like DEEPSEEK_API) for use in
-  // the dev server only. These are NEVER exposed to the client bundle.
-  const env = loadEnv(mode, process.cwd(), "")
-  const deepseekKey = env.DEEPSEEK_API || env.VITE_DEEPSEEK_API || ""
-  const deepseekHeaders: Record<string, string> = deepseekKey
-    ? { Authorization: `Bearer ${deepseekKey}` }
-    : {}
-
-  return {
-    plugins: [react(), tailwindcss(), devSyncPlugin()],
-    resolve: {
-      alias: {
-        "@": path.resolve(__dirname, "./src"),
-      },
+export default defineConfig({
+  plugins: [react(), tailwindcss(), devSyncPlugin()],
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
     },
-    server: {
-      proxy: {
-        // The browser calls /api/deepseek ; the dev server forwards to
-        // DeepSeek's chat/completions and injects the Authorization header so
-        // the API key stays on the server side and CORS is avoided.
-        "/api/deepseek": {
-          target: "https://api.deepseek.com",
-          changeOrigin: true,
-          rewrite: () => "/chat/completions",
-          headers: deepseekHeaders,
-        },
-      },
-    },
-  }
+  },
 })

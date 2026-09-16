@@ -4,8 +4,17 @@ import { useSync } from "@/store/sync"
 
 const THRESHOLD = 70
 const MAX_PULL = 110
+/** Finger travel before we decide whether a touch is a pull or a scroll. */
+const DEAD_ZONE = 8
 
 type RState = "idle" | "refreshing"
+/**
+ * What the current touch gesture is doing. Decided once per gesture, after
+ * DEAD_ZONE px of movement, and never revisited: a gesture that started as
+ * a scroll must never call preventDefault, or iOS locks scrolling for the
+ * rest of the touch.
+ */
+type Gesture = "undecided" | "pull" | "scroll"
 
 /**
  * Pull-down-to-refresh for the installed PWA (standalone display mode). Pulling
@@ -21,6 +30,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
 
   const pullRef = useRef(0)
   const startYRef = useRef<number | null>(null)
+  const gestureRef = useRef<Gesture>("scroll")
   const rstateRef = useRef<RState>("idle")
   rstateRef.current = rstate
   const refreshRef = useRef(refresh)
@@ -39,30 +49,44 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     }
 
     function onStart(e: TouchEvent) {
-      if (rstateRef.current !== "idle" || window.scrollY > 0) {
-        startYRef.current = null
-        return
-      }
+      gestureRef.current = "scroll"
+      startYRef.current = null
+      if (rstateRef.current !== "idle" || window.scrollY > 0) return
+      if (e.touches.length !== 1) return
       startYRef.current = e.touches[0].clientY
+      gestureRef.current = "undecided"
     }
 
     function onMove(e: TouchEvent) {
-      if (startYRef.current === null || rstateRef.current !== "idle") return
+      if (startYRef.current === null || gestureRef.current === "scroll") return
       const dy = e.touches[0].clientY - startYRef.current
-      if (dy <= 0 || window.scrollY > 0) {
-        if (pullRef.current !== 0) reset(true)
-        return
+
+      if (gestureRef.current === "undecided") {
+        if (Math.abs(dy) < DEAD_ZONE) return
+        // Only a downward drag from the very top becomes a pull. Anything
+        // else is a scroll, and we stay out of the browser's way from here on.
+        if (dy > 0 && window.scrollY <= 0) {
+          gestureRef.current = "pull"
+        } else {
+          gestureRef.current = "scroll"
+          return
+        }
       }
-      const p = Math.min(dy * 0.5, MAX_PULL)
+
+      // Pull mode: we own this gesture. Keep the page from scrolling under
+      // the spinner, including when the finger comes back up.
+      if (e.cancelable) e.preventDefault()
+      const p = Math.max(0, Math.min((dy - DEAD_ZONE) * 0.5, MAX_PULL))
       pullRef.current = p
       setSettling(false)
       setPull(p)
-      if (e.cancelable) e.preventDefault()
     }
 
     async function onEnd() {
-      if (startYRef.current === null) return
+      const wasPull = gestureRef.current === "pull"
+      gestureRef.current = "scroll"
       startYRef.current = null
+      if (!wasPull) return
       if (pullRef.current >= THRESHOLD) {
         reset(true)
         setRstate("refreshing")
@@ -116,7 +140,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
 
       <div
         style={{
-          transform: `translateY(${pull}px)`,
+          transform: pull ? `translateY(${pull}px)` : undefined,
           transition: settling ? "transform 0.3s cubic-bezier(0.2,0,0,1)" : "none",
         }}
       >

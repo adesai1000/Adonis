@@ -12,7 +12,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { DateTimePicker } from "@/components/common/datetime-picker"
-import { FieldError } from "@/components/common/bits"
+import { FieldError, HMSInput } from "@/components/common/bits"
 import { formatPace, hmsToSeconds, isoNow } from "@/lib/calc"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
@@ -33,7 +33,7 @@ interface CardioDraft {
 
 const initialDraft = (): CardioDraft => ({
   datetime: isoNow(),
-  activity: "Run",
+  activity: "Steps",
   distance: "",
   h: "",
   m: "",
@@ -256,37 +256,6 @@ export function CardioTab() {
         {isSteps ? <Footprints className="size-4" /> : <Timer className="size-4" />}
         {isSteps ? "Log steps" : "Log cardio"}
       </Button>
-    </div>
-  )
-}
-
-function HMSInput({
-  label,
-  value,
-  onChange,
-  max,
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  max?: number
-}) {
-  return (
-    <div className="relative">
-      <Input
-        type="number"
-        inputMode="numeric"
-        min={0}
-        max={max}
-        placeholder="0"
-        className="h-11 pr-9 text-center tabular-nums"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        aria-label={label}
-      />
-      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-        {label}
-      </span>
     </div>
   )
 }

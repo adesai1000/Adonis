@@ -1,6 +1,7 @@
 import type { ReactNode } from "react"
 import { ArrowDown, ArrowUp, Minus, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
 // ───────────────────────────── EmptyState ─────────────────────────────
@@ -120,6 +121,42 @@ export function Stepper({
       >
         <Plus className="size-4" />
       </Button>
+    </div>
+  )
+}
+
+// ───────────────────────────── HMSInput ─────────────────────────────
+/** One cell of an hours / minutes / seconds duration entry. */
+export function HMSInput({
+  label,
+  value,
+  onChange,
+  max,
+  disabled,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  max?: number
+  disabled?: boolean
+}) {
+  return (
+    <div className="relative">
+      <Input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        max={max}
+        placeholder="0"
+        className="h-11 pr-9 text-center tabular-nums"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        aria-label={label}
+        disabled={disabled}
+      />
+      <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        {label}
+      </span>
     </div>
   )
 }

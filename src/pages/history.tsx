@@ -316,7 +316,28 @@ function WorkoutSection({
                             {ex.muscleGroup}
                           </span>
                         </div>
-                        {ex.sets.length > 0 ? (
+                        {ex.cardio ? (
+                          <div className="mt-1 flex flex-wrap gap-1.5">
+                            <Badge variant="outline" className="font-normal tabular-nums">
+                              {formatDuration(ex.cardio.durationSec)}
+                            </Badge>
+                            {(ex.cardio.distance ?? 0) > 0 && (
+                              <Badge variant="outline" className="font-normal tabular-nums">
+                                {fmtNum(ex.cardio.distance)}{" "}
+                                {ex.cardio.distanceUnit === "km" ? "km" : "mi"}
+                              </Badge>
+                            )}
+                            {(ex.cardio.distance ?? 0) > 0 && ex.cardio.durationSec > 0 && (
+                              <Badge variant="outline" className="font-normal tabular-nums">
+                                {formatPace(
+                                  ex.cardio.distance,
+                                  ex.cardio.durationSec,
+                                  ex.cardio.distanceUnit ?? "km"
+                                )}
+                              </Badge>
+                            )}
+                          </div>
+                        ) : ex.sets.length > 0 ? (
                           <div className="mt-1 flex flex-wrap gap-1.5">
                             {ex.sets.map((set, j) => (
                               <Badge

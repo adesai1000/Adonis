@@ -197,7 +197,7 @@ export function DragList<T>({
             data-key={key}
             data-dragging={dragging ? "true" : "false"}
             className={cn(
-              "will-change-transform",
+              "select-none will-change-transform [-webkit-touch-callout:none]",
               dragging && "relative z-10 scale-[1.02] opacity-95 shadow-lg"
             )}
           >

@@ -8,6 +8,7 @@ import {
 } from "react"
 import { uid } from "@/lib/calc"
 import {
+  LEGACY_STORAGE_KEYS,
   STORAGE_KEYS,
   storageBytes as computeStorageBytes,
   removeKey,
@@ -45,10 +46,14 @@ const ALL_HOME_SECTIONS = defaultUiPrefs.homeSectionOrder as HomeSection[]
 
 /** Ensure stored prefs include every card/graph/section key (forward-compatible migration). */
 function normalizeUiPrefs(p: UiPrefs): UiPrefs {
-  const cardOrder = [
-    ...p.cardOrder.filter((k) => ALL_CARD_KEYS.includes(k)),
-    ...ALL_CARD_KEYS.filter((k) => !p.cardOrder.includes(k)),
-  ]
+  // Cards added after the user first saved prefs slot in at their default
+  // position rather than being tacked onto the end.
+  const cardOrder = p.cardOrder.filter((k) => ALL_CARD_KEYS.includes(k))
+  ALL_CARD_KEYS.forEach((k, i) => {
+    if (!cardOrder.includes(k)) {
+      cardOrder.splice(Math.min(i, cardOrder.length), 0, k)
+    }
+  })
   const cardVisibility = { ...defaultUiPrefs.cardVisibility }
   for (const k of ALL_CARD_KEYS) {
     if (p.cardVisibility[k] !== undefined) cardVisibility[k] = p.cardVisibility[k]
@@ -410,7 +415,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         }
       }
       toRemove.forEach(removeKey)
-      removeKey(STORAGE_KEYS.aiSummary)
     } catch {
       /* ignore */
     }
@@ -442,10 +446,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSettings((s) => ({ ...s, weightUnit: "lbs", distanceUnit: "miles" }))
   }, [setFoodLog, setWorkoutLog, setCardioLog, setWeightLog, setRoutines, setSettings])
 
-  // One-time migration: make sure prefs/settings include any newly-added keys.
+  // One-time migration: make sure prefs/settings include any newly-added keys
+  // and drop anything left behind by removed features.
   useEffect(() => {
     setUiPrefs((p) => normalizeUiPrefs(p))
     setSettings((s) => normalizeSettings(s))
+    LEGACY_STORAGE_KEYS.forEach(removeKey)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

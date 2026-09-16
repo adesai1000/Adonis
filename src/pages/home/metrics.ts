@@ -4,9 +4,12 @@ import {
   convertWeight,
   dateKey,
   fmt,
+  sessionCardioDistance,
+  sessionCardioSeconds,
   sessionVolume,
   signed,
 } from "@/lib/calc"
+import { STRAIN_MAX, strainForDay } from "@/lib/strain"
 import type {
   CardioEntry,
   CardKey,
@@ -30,6 +33,7 @@ export interface CardMetric {
 }
 
 export const CARD_TITLES: Record<CardKey, string> = {
+  strain: "Strain",
   volume: "Weight Lifted",
   reps: "Reps / Set",
   calories: "Calories",
@@ -101,6 +105,7 @@ function repsDay(workoutLog: WorkoutSession[], day: string): DayValue {
 
 function cardioDay(
   cardioLog: CardioEntry[],
+  workoutLog: WorkoutSession[],
   day: string,
   unit: Settings["distanceUnit"],
   useDistance: boolean
@@ -111,6 +116,15 @@ function cardioDay(
     if (dateKey(e.datetime) !== day) continue
     has = true
     value += useDistance ? cardioDistance(e, unit) : (e.durationSec || 0) / 60
+  }
+  // Cardio machines logged inside a workout session count here too.
+  for (const s of workoutLog) {
+    if (dateKey(s.datetime) !== day) continue
+    const sec = sessionCardioSeconds(s)
+    const dist = sessionCardioDistance(s, unit)
+    if (sec <= 0 && dist <= 0) continue
+    has = true
+    value += useDistance ? dist : sec / 60
   }
   return { value, has }
 }
@@ -163,6 +177,24 @@ export function computeCardMetric(
   const wUnit = settings.weightUnit
 
   switch (key) {
+    case "strain": {
+      const hasActivity = (day: string) =>
+        data.workoutLog.some((s) => dateKey(s.datetime) === day) ||
+        data.cardioLog.some((e) => dateKey(e.datetime) === day)
+      const todayV = strainForDay(data.workoutLog, data.cardioLog, today)
+      const prevV = strainForDay(data.workoutLog, data.cardioLog, yesterday)
+      const delta = todayV - prevV
+      const direction: CardMetric["direction"] =
+        Math.abs(delta) < 0.05 ? "flat" : delta > 0 ? "up" : "down"
+      return {
+        display: `${fmt(todayV)} / ${STRAIN_MAX}`,
+        trendText: signed(delta),
+        direction,
+        tone: "neutral",
+        hasData: hasActivity(today),
+        hasPrev: hasActivity(yesterday),
+      }
+    }
     case "volume":
       return build(
         volumeDay(data.workoutLog, today, wUnit),
@@ -214,13 +246,17 @@ export function computeCardMetric(
       )
     case "cardio": {
       const dUnit = settings.distanceUnit
-      const todayHasDist = data.cardioLog.some(
-        (e) => dateKey(e.datetime) === today && (e.distance ?? 0) > 0
-      )
+      const todayHasDist =
+        data.cardioLog.some(
+          (e) => dateKey(e.datetime) === today && (e.distance ?? 0) > 0
+        ) ||
+        data.workoutLog.some(
+          (s) => dateKey(s.datetime) === today && sessionCardioDistance(s, dUnit) > 0
+        )
       const unit = todayHasDist ? (dUnit === "km" ? "km" : "mi") : "min"
       return build(
-        cardioDay(data.cardioLog, today, dUnit, todayHasDist),
-        cardioDay(data.cardioLog, yesterday, dUnit, todayHasDist),
+        cardioDay(data.cardioLog, data.workoutLog, today, dUnit, todayHasDist),
+        cardioDay(data.cardioLog, data.workoutLog, yesterday, dUnit, todayHasDist),
         unit,
         higherIsBetterTone
       )
