@@ -330,86 +330,154 @@
 
 @layer components {
   /* ── Consistency gem: a complete day (food + sleep + workout) ──
-     A brilliant-cut stone seen from the side: flat table, crown, pavilion
-     to a point. Ice-white facets from a conic gradient centred on the
-     girdle, a specular hotspot, a hint of fire, and a one-shot light sweep
-     on mount. Everything lives inside the clipped shape; the outer span
-     only carries a tight drop-shadow (which follows the silhouette). */
+     An opal cabochon, upright egg like the reference stone. Play-of-colour
+     comes from oversized radial colour patches under a glassy dome. Their
+     positions follow --opal-shift (page scroll, smoothed by a spring in the
+     tracker) so the flashes slide as you scroll, like tilting the stone,
+     and drift on their own slow periods when still. Two soft glints swell
+     and fade on top; a wider, eased glint crosses once on mount. */
+  /* CSS stone: shown only where WebGL is unavailable (see OpalField) */
+  .gem-fallback {
+    display: none;
+  }
+  .no-webgl .gem-fallback {
+    display: block;
+  }
   .gem {
     position: relative;
     display: block;
     width: 100%;
     height: 100%;
-    filter: drop-shadow(0 0 1px rgba(255, 255, 255, 0.55)) drop-shadow(0 0.5px 1px rgba(0, 0, 0, 0.45));
+    /* soft halo into the dark canvas, like the stone is lit from within */
+    filter:
+      drop-shadow(0 0 3px rgba(190, 225, 255, 0.55))
+      drop-shadow(0 0 8px rgba(120, 190, 255, 0.28))
+      drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
   }
   .gem-body {
     position: absolute;
-    inset: -1px;
-    clip-path: polygon(18% 0%, 82% 0%, 100% 34%, 50% 100%, 0% 34%);
+    inset: 0;
+    /* irregular rounded pebble, slightly taller than wide */
+    border-radius: 46% 54% 50% 50% / 58% 56% 44% 42%;
     overflow: hidden;
-    background:
-      /* fire: faint colour flashes in two pavilion facets */
-      radial-gradient(circle at 70% 62%, rgba(255, 140, 200, 0.35) 0%, rgba(255, 140, 200, 0) 28%),
-      radial-gradient(circle at 34% 58%, rgba(120, 210, 255, 0.4) 0%, rgba(120, 210, 255, 0) 30%),
-      /* specular hotspot on the crown */
-      radial-gradient(circle at 36% 16%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.7) 16%, rgba(255, 255, 255, 0) 42%),
-      /* crown: bright table band above the girdle */
-      linear-gradient(to bottom, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.45) 30%, rgba(255, 255, 255, 0) 36%),
-      /* pavilion facets: alternating light / shadow wedges from the girdle */
-      conic-gradient(
-        from 150deg at 50% 34%,
-        #ffffff 0deg,
-        #b9c6d4 18deg,
-        #f4f8fc 36deg,
-        #8c9db0 54deg,
-        #ffffff 72deg,
-        #c9d4e0 90deg,
-        #f9fbfe 108deg,
-        #9aabbe 126deg,
-        #ffffff 144deg,
-        #d5dee8 162deg,
-        #eef3f8 180deg,
-        #a7b6c6 198deg,
-        #ffffff 216deg,
-        #c1cdd9 234deg,
-        #f6f9fc 252deg,
-        #93a4b7 270deg,
-        #ffffff 288deg,
-        #d0dae4 306deg,
-        #f0f5fa 324deg,
-        #aebccb 342deg,
-        #ffffff 360deg
-      );
+    /* milky, translucent body */
+    background-color: #dfe6f1;
+    background-image:
+      /* dome: glassy highlight up-left, cool depth down-right */
+      radial-gradient(ellipse 52% 38% at 34% 22%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 30%, rgba(255, 255, 255, 0) 60%),
+      radial-gradient(ellipse 95% 75% at 70% 95%, rgba(110, 130, 185, 0.45) 0%, rgba(110, 130, 185, 0) 62%),
+      /* crackle: fine crossing veins give the flashes a cellular structure */
+      repeating-linear-gradient(112deg, rgba(255, 255, 255, 0.22) 0 1px, rgba(255, 255, 255, 0) 1px 4px),
+      repeating-linear-gradient(-38deg, rgba(255, 255, 255, 0.16) 0 1px, rgba(255, 255, 255, 0) 1px 5px),
+      repeating-linear-gradient(20deg, rgba(60, 90, 160, 0.12) 0 1px, rgba(60, 90, 160, 0) 1px 7px),
+      /* play-of-colour: small saturated flecks suspended in the milk */
+      radial-gradient(ellipse 22% 16% at 50% 50%, rgba(255, 170, 70, 1) 0%, rgba(255, 170, 70, 0) 70%),
+      radial-gradient(ellipse 18% 24% at 50% 50%, rgba(60, 240, 160, 1) 0%, rgba(60, 240, 160, 0) 70%),
+      radial-gradient(ellipse 20% 18% at 50% 50%, rgba(70, 180, 255, 1) 0%, rgba(70, 180, 255, 0) 70%),
+      radial-gradient(ellipse 16% 16% at 50% 50%, rgba(210, 110, 255, 1) 0%, rgba(210, 110, 255, 0) 70%),
+      radial-gradient(ellipse 15% 14% at 50% 50%, rgba(255, 235, 90, 1) 0%, rgba(255, 235, 90, 0) 70%),
+      radial-gradient(ellipse 28% 22% at 50% 50%, rgba(110, 150, 255, 0.8) 0%, rgba(110, 150, 255, 0) 70%);
+    background-size:
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      100% 100%,
+      220% 220%,
+      220% 220%,
+      220% 220%,
+      220% 220%,
+      220% 220%,
+      220% 220%;
+    background-position: var(--opal-pos-a);
+    animation: opal-play 11s cubic-bezier(0.45, 0.05, 0.55, 0.95) infinite alternate;
+    animation-delay: calc(var(--gem-delay, 0ms) * -3);
+    box-shadow:
+      inset 0 0 0 0.5px rgba(255, 255, 255, 0.7),
+      inset 0 -2px 3px rgba(90, 110, 160, 0.45),
+      inset 0 1px 1px rgba(255, 255, 255, 0.9),
+      inset 0 0 6px rgba(255, 255, 255, 0.35);
+    --opal-pos-a:
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      calc(var(--opal-shift, 0px) * 1.6 + 30%) calc(var(--opal-shift, 0px) * 0.9 + 40%),
+      calc(var(--opal-shift, 0px) * -1.2 + 70%) calc(var(--opal-shift, 0px) * 1.4 + 20%),
+      calc(var(--opal-shift, 0px) * 1.1 + 55%) calc(var(--opal-shift, 0px) * -1.3 + 75%),
+      calc(var(--opal-shift, 0px) * -0.8 + 15%) calc(var(--opal-shift, 0px) * -1 + 80%),
+      calc(var(--opal-shift, 0px) * 1.5 + 85%) calc(var(--opal-shift, 0px) * 0.6 + 60%),
+      calc(var(--opal-shift, 0px) * -0.6 + 50%) calc(var(--opal-shift, 0px) * 0.8 + 50%);
+    --opal-pos-b:
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      0 0,
+      calc(var(--opal-shift, 0px) * 1.6 + 62%) calc(var(--opal-shift, 0px) * 0.9 + 22%),
+      calc(var(--opal-shift, 0px) * -1.2 + 28%) calc(var(--opal-shift, 0px) * 1.4 + 58%),
+      calc(var(--opal-shift, 0px) * 1.1 + 24%) calc(var(--opal-shift, 0px) * -1.3 + 30%),
+      calc(var(--opal-shift, 0px) * -0.8 + 68%) calc(var(--opal-shift, 0px) * -1 + 40%),
+      calc(var(--opal-shift, 0px) * 1.5 + 40%) calc(var(--opal-shift, 0px) * 0.6 + 85%),
+      calc(var(--opal-shift, 0px) * -0.6 + 55%) calc(var(--opal-shift, 0px) * 0.8 + 35%);
   }
-  /* facet edges: girdle line and the crown/pavilion seams */
+  /* two soft glints that swell and fade on their own rhythms — light
+     catching different flecks, never a hard edge */
   .gem-body::after {
     content: "";
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(to bottom, transparent 32%, rgba(255, 255, 255, 0.9) 33.5%, rgba(120, 135, 155, 0.6) 35%, transparent 37%),
-      linear-gradient(90deg, transparent 48%, rgba(255, 255, 255, 0.5) 50%, transparent 52%);
+      radial-gradient(circle 32% at 62% 38%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 100%),
+      radial-gradient(circle 26% at 30% 66%, rgba(180, 255, 235, 0.85) 0%, rgba(180, 255, 235, 0) 100%);
+    mix-blend-mode: screen;
+    opacity: 0;
+    animation:
+      opal-glint-a 5.2s cubic-bezier(0.4, 0, 0.2, 1) infinite,
+      opal-glint-b 7.6s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    animation-delay: calc(var(--gem-delay, 0ms) * -2), calc(var(--gem-delay, 0ms) * -5);
   }
-  /* the sweep: a bright band that crosses the stone once on mount */
+  /* on mount: a wide, feathered glint rises across the dome and dies away */
   .gem-body::before {
     content: "";
     position: absolute;
-    inset: -40%;
-    background: linear-gradient(115deg, transparent 40%, rgba(255, 255, 255, 1) 50%, transparent 60%);
-    transform: translateX(-120%);
-    animation: gem-shine 1100ms cubic-bezier(0.4, 0, 0.2, 1) 1 both;
-    animation-delay: calc(var(--gem-delay, 0ms) + 250ms);
+    inset: -30%;
+    z-index: 1;
+    background: radial-gradient(ellipse 28% 60% at 50% 50%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.35) 40%, rgba(255, 255, 255, 0) 75%);
+    opacity: 0;
+    transform: translate(-45%, 35%) rotate(-20deg);
+    animation: opal-mount 1500ms cubic-bezier(0.22, 0.61, 0.36, 1) 1 both;
+    animation-delay: calc(var(--gem-delay, 0ms) + 200ms);
   }
   .gem-static .gem-body::before {
     animation: none;
-    transform: translateX(120%);
+    opacity: 0;
   }
-  @keyframes gem-shine {
-    from { transform: translateX(-120%); }
-    to { transform: translateX(120%); }
+  @keyframes opal-play {
+    from { background-position: var(--opal-pos-a); }
+    to { background-position: var(--opal-pos-b); }
+  }
+  @keyframes opal-glint-a {
+    0%, 55%, 100% { opacity: 0; transform: scale(0.85); }
+    20% { opacity: 0.55; transform: scale(1); }
+    32% { opacity: 0.1; transform: scale(1.05); }
+  }
+  @keyframes opal-glint-b {
+    0%, 30%, 100% { opacity: 0; }
+    62% { opacity: 0.45; }
+    76% { opacity: 0.05; }
+  }
+  @keyframes opal-mount {
+    0% { opacity: 0; transform: translate(-45%, 35%) rotate(-20deg); }
+    35% { opacity: 1; }
+    100% { opacity: 0; transform: translate(45%, -35%) rotate(-20deg); }
   }
   @media (prefers-reduced-motion: reduce) {
-    .gem-body::before { animation: none; transform: translateX(120%); }
+    .gem-body, .gem-body::before, .gem-body::after { animation: none; }
+  }
+  :root:not(.dark) .gem {
+    filter: drop-shadow(0 0 2px rgba(90, 140, 220, 0.35)) drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.35));
   }
 
   /* Frosted surfaces */

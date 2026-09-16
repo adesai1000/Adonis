@@ -17,7 +17,7 @@ import {
   X,
   Zap,
 } from "lucide-react"
-import { Area, AreaChart, CartesianGrid, XAxis } from "recharts"
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -303,6 +303,15 @@ export default function Page() {
                         </linearGradient>
                       </defs>
                       <CartesianGrid vertical={false} />
+                      {/* padded domain so the curve never touches the frame;
+                          monotone interpolation can't overshoot the data */}
+                      <YAxis
+                        hide
+                        domain={[
+                          (min: number) => Math.floor(min - Math.max(1, Math.abs(min) * 0.06)),
+                          (max: number) => Math.ceil(max + Math.max(1, Math.abs(max) * 0.08)),
+                        ]}
+                      />
                       <XAxis
                         dataKey="label"
                         tickLine={false}
@@ -334,7 +343,7 @@ export default function Page() {
                       />
                       <Area
                         dataKey="value"
-                        type="natural"
+                        type="monotone"
                         stroke="var(--color-value)"
                         strokeWidth={2}
                         fill="url(#homeFill)"

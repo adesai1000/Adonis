@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { convertWeight, goalProgressFraction, startingWeightEntry } from "@/lib/calc"
+import { convertWeight, fmtCompact, goalProgressFraction, startingWeightEntry } from "@/lib/calc"
 import { useStore } from "@/store/store"
 
 const SEGMENTS = 16
@@ -67,11 +67,16 @@ export function WeightGoalProgress() {
 
   return (
     <div
-      className="flex shrink-0 items-end gap-[3px]"
+      className="flex shrink-0 items-center gap-2"
       role="img"
       aria-label={`Weight goal progress: ${Math.round(progress * 100)}%. ${summary}`}
       title={summary}
     >
+      {/* current weight leads, goal trails, the meter reads between them */}
+      <span className="text-[11.5px] font-semibold text-foreground tabular-nums">
+        {state ? fmtCompact(state.current) : ""}
+      </span>
+      <div className="flex items-end gap-[3px]">
       {Array.from({ length: SEGMENTS }).map((_, i) => {
         let fraction = Math.max(0, Math.min(1, filledUnits - i))
         if (i === 0 && progress > 0 && fraction < MIN_VISIBLE_FRACTION) {
@@ -99,6 +104,10 @@ export function WeightGoalProgress() {
           </span>
         )
       })}
+      </div>
+      <span className="text-[11.5px] font-semibold text-ink-3 tabular-nums">
+        {state ? `${fmtCompact(state.goal)} ${unit}` : ""}
+      </span>
     </div>
   )
 }

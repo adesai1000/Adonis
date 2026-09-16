@@ -29,6 +29,8 @@ export interface ConsistencyDay {
   food: boolean
   sleep: boolean
   workout: boolean
+  /** Steps logged too — a complete day with steps earns the warm stone. */
+  steps: boolean
 }
 
 export interface ConsistencyStats {
@@ -116,6 +118,10 @@ export function buildConsistency(
   for (const e of input.cardioLog) workoutDays.add(dateKey(e.datetime))
   // Sleep counts for the day it ends (last night → today).
   const sleepDays = new Set(input.sleepLog.map(sleepEndsOn))
+  const stepDays = new Set<string>()
+  for (const e of input.cardioLog) {
+    if (e.activity === "Steps" || (e.steps ?? 0) > 0) stepDays.add(dateKey(e.datetime))
+  }
 
   const todayKey = format(today, "yyyy-MM-dd")
   const days: ConsistencyDay[] = []
@@ -125,6 +131,7 @@ export function buildConsistency(
     const food = foodDays.has(key)
     const sleep = sleepDays.has(key)
     const workout = workoutDays.has(key)
+    const steps = stepDays.has(key)
     let level: ConsistencyLevel
     if (cursor > today) {
       level = "future"
@@ -136,7 +143,7 @@ export function buildConsistency(
       level = fullSet ? "diamond" : logged >= 2 ? "two" : logged === 1 ? "one" : "none"
     }
     if (key === todayKey) todayIndex = days.length
-    days.push({ date: key, level, food, sleep, workout })
+    days.push({ date: key, level, food, sleep, workout, steps })
   }
 
   // Stats only over the tracked range (start → today, which is contiguous).

@@ -10,6 +10,7 @@ import {
 } from "@/lib/consistency"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
+import { OpalField, type OpalGem } from "@/components/common/opal-field"
 
 /** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
@@ -37,16 +38,29 @@ function tileTitle(day: ConsistencyDay): string {
 }
 
 /**
- * A cut gem for a complete day. Faceted with a conic gradient under a
- * diamond clip, a specular hotspot, a soft glow, and a single light sweep
- * on mount (staggered by column so the grid glitters in from the left).
+ * A complete day's cell. The stone itself is drawn by the WebGL field laid
+ * over the grid; this keeps the cell's place (and its tooltip). The CSS gem
+ * inside is the fallback for browsers without WebGL and is hidden otherwise.
  */
-function Gem({ delayMs, title }: { delayMs: number; title: string }) {
+function GemCell({ title, delayMs }: { title: string; delayMs: number }) {
   return (
-    <span className="gem" title={title} style={{ "--gem-delay": `${delayMs}ms` } as React.CSSProperties}>
-      <span className="gem-body" />
+    <span
+      className="gem-cell relative"
+      title={title}
+      style={{ "--gem-delay": `${delayMs}ms` } as React.CSSProperties}
+    >
+      <span className="gem gem-fallback">
+        <span className="gem-body" />
+      </span>
     </span>
   )
+}
+
+/** Stable per-day seed so each stone keeps its own character between renders. */
+function seedFor(date: string): number {
+  let h = 2166136261
+  for (let i = 0; i < date.length; i++) h = Math.imul(h ^ date.charCodeAt(i), 16777619)
+  return ((h >>> 0) % 1000) / 10
 }
 
 function parseDate(value: string): Date | null {
@@ -60,8 +74,8 @@ function parseDate(value: string): Date | null {
 }
 
 const DAY_LABELS = ["Mon", "", "Wed", "", "Fri", "", ""]
-const TILE_SIZE = 13
-const GAP = 3
+const TILE_SIZE = 22
+const GAP = 5
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
 const FUTURE_PEEK_WEEKS = 3
@@ -69,6 +83,51 @@ const FUTURE_PEEK_WEEKS = 3
 export function ConsistencyTracker() {
   const { foodLog, workoutLog, cardioLog, sleepLog, settings } = useStore()
   const scrollRef = useRef<HTMLDivElement>(null)
+  const cardRef = useRef<HTMLDivElement>(null)
+
+  // Tilt the opals as the page moves. Scroll sets a target; a damped spring
+  // chases it each frame, so the colour play glides while you scroll and
+  // settles with a little overshoot when you stop, instead of snapping.
+  useEffect(() => {
+    const card = cardRef.current
+    if (!card) return
+    const STIFFNESS = 0.08
+    const DAMPING = 0.78
+    let target = 0
+    let value = 0
+    let velocity = 0
+    let raf = 0
+
+    const readTarget = () =>
+      window.scrollY * 0.18 + (scrollRef.current?.scrollLeft ?? 0) * 0.12
+
+    const step = () => {
+      raf = 0
+      const force = (target - value) * STIFFNESS
+      velocity = (velocity + force) * DAMPING
+      value += velocity
+      card.style.setProperty("--opal-shift", `${value.toFixed(2)}px`)
+      if (Math.abs(target - value) > 0.05 || Math.abs(velocity) > 0.05) {
+        raf = requestAnimationFrame(step)
+      }
+    }
+    const onScroll = () => {
+      target = readTarget()
+      if (!raf) raf = requestAnimationFrame(step)
+    }
+
+    target = readTarget()
+    value = target
+    card.style.setProperty("--opal-shift", `${value.toFixed(2)}px`)
+    window.addEventListener("scroll", onScroll, { passive: true })
+    const grid = scrollRef.current
+    grid?.addEventListener("scroll", onScroll, { passive: true })
+    return () => {
+      window.removeEventListener("scroll", onScroll)
+      grid?.removeEventListener("scroll", onScroll)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
 
   const stats = useMemo(() => {
     const input = { foodLog, workoutLog, cardioLog, sleepLog }
@@ -123,8 +182,31 @@ export function ConsistencyTracker() {
 
   const weekCount = Math.max(1, Math.ceil(stats.totalDays / 7))
 
+  // Every complete day becomes a stone for the WebGL field, placed on the
+  // same grid coordinates its cell occupies.
+  const gems = useMemo<OpalGem[]>(() => {
+    const out: OpalGem[] = []
+    weeks.forEach((week, wi) =>
+      week.forEach((day, di) => {
+        if (day.level !== "diamond") return
+        out.push({
+          x: wi * COL_WIDTH,
+          y: di * (TILE_SIZE + GAP),
+          size: TILE_SIZE,
+          tier: day.steps ? 2 : 1,
+          seed: seedFor(day.date),
+          delayMs: Math.max(0, wi - todayCol + 12) * 55 + di * 20,
+          title: tileTitle(day),
+        })
+      })
+    )
+    return out
+  }, [weeks, todayCol])
+  const gridWidth = weeks.length * COL_WIDTH - GAP
+  const gridHeight = 7 * TILE_SIZE + 6 * GAP
+
   return (
-    <Card className="gap-4 py-5">
+    <Card ref={cardRef} className="gap-4 py-5">
       <CardHeader className="flex flex-row items-center gap-3 px-5">
         <span className="grid size-6 place-items-center rounded-lg bg-muted text-ink-2">
           <Grid3x3 className="size-3.5" />
@@ -135,7 +217,7 @@ export function ConsistencyTracker() {
       <CardContent className="px-5">
         <div className="flex gap-2">
           <div
-            className="flex shrink-0 flex-col text-[10px] text-muted-foreground"
+            className="flex shrink-0 flex-col text-[11px] text-muted-foreground"
             style={{ paddingTop: TILE_SIZE + 4, gap: GAP }}
           >
             {DAY_LABELS.map((label, i) => (
@@ -152,7 +234,7 @@ export function ConsistencyTracker() {
                   label ? (
                     <span
                       key={wi}
-                      className="absolute top-0 whitespace-nowrap text-[10px] text-muted-foreground"
+                      className="absolute top-0 whitespace-nowrap text-[11px] text-muted-foreground"
                       style={{ left: wi * COL_WIDTH, lineHeight: `${TILE_SIZE}px` }}
                     >
                       {label}
@@ -161,7 +243,7 @@ export function ConsistencyTracker() {
                 )}
               </div>
               <div
-                className="grid"
+                className="relative grid"
                 style={{
                   marginTop: 4,
                   gridTemplateColumns: `repeat(${weeks.length}, ${TILE_SIZE}px)`,
@@ -170,10 +252,11 @@ export function ConsistencyTracker() {
                   gap: GAP,
                 }}
               >
+                <OpalField gems={gems} width={gridWidth} height={gridHeight} />
                 {weeks.flatMap((week, wi) =>
                   week.map((day, di) =>
                     day.level === "diamond" ? (
-                      <Gem
+                      <GemCell
                         key={`${wi}-${di}`}
                         title={tileTitle(day)}
                         // sweep left → right across the visible weeks
@@ -182,7 +265,7 @@ export function ConsistencyTracker() {
                     ) : (
                       <span
                         key={`${wi}-${di}`}
-                        className={cn("rounded-[3.5px]", tileClass(day.level))}
+                        className={cn("rounded-[6px]", tileClass(day.level))}
                         title={tileTitle(day)}
                       />
                     )
@@ -207,14 +290,31 @@ export function ConsistencyTracker() {
               <span className="size-[11px] rounded-[3px] bg-[var(--heat-4)]" /> two
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="gem gem-static" style={{ width: 11, height: 11 }}>
-                <span className="gem-body" />
-              </span>{" "}
-              food + sleep + workout
+              <LegendStone tier={1} /> food + sleep + workout
+            </span>
+            <span className="flex items-center gap-1.5">
+              <LegendStone tier={2} /> + steps
             </span>
           </span>
         </div>
       </CardContent>
     </Card>
+  )
+}
+
+/** A single stone for the legend, on its own tiny field. */
+function LegendStone({ tier }: { tier: 1 | 2 }) {
+  const gems = useMemo<OpalGem[]>(
+    () => [{ x: 0, y: 0, size: 18, tier, seed: tier * 17, delayMs: 300 * tier }],
+    [tier]
+  )
+  return (
+    <span className="relative inline-block size-[18px] align-middle">
+      <OpalField gems={gems} width={18} height={18}>
+        <span className="gem gem-fallback gem-static">
+          <span className="gem-body" />
+        </span>
+      </OpalField>
+    </span>
   )
 }
