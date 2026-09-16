@@ -60,7 +60,12 @@ export function BarcodeScanner({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90dvh] overflow-y-auto">
+      {/* Don't auto-focus the typed-barcode field: on a phone that raises the
+          keyboard over the viewfinder before the camera has even started. */}
+      <DialogContent
+        className="max-h-[90dvh] overflow-y-auto"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <ScanBarcode className="size-4" />
