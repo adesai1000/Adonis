@@ -161,9 +161,9 @@ export function ProductScanFlow({
           {product && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-2">
-                  <PackageSearch className="size-4" />
-                  {productDisplayName(product)}
+                <DialogTitle className="flex items-start gap-2 text-left">
+                  <PackageSearch className="mt-1 size-4 shrink-0" />
+                  <span className="min-w-0 break-words">{productDisplayName(product)}</span>
                 </DialogTitle>
                 <DialogDescription>
                   {[product.packageQuantity, `barcode ${product.barcode}`]
@@ -191,8 +191,8 @@ export function ProductScanFlow({
                     disabled={!product.perServing}
                   >
                     {product.perServing
-                      ? `Serving (${servingLabel(product, "serving")})`
-                      : "Serving (unknown)"}
+                      ? `Serving · ${servingLabel(product, "serving")}`
+                      : "Serving · unknown"}
                   </ToggleGroupItem>
                   <ToggleGroupItem
                     value="100g"
