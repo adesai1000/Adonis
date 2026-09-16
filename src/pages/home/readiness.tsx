@@ -1,4 +1,4 @@
-import { useMemo } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Gauge, Moon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
@@ -34,6 +34,31 @@ export function ReadinessSection() {
     [sleepLog, workoutLog, cardioLog, foodLog, settings, today]
   )
   const rec = r.recovery
+
+  // Fill the bar and count the number up from zero whenever the score lands.
+  const target = r.score ?? 0
+  const [drawn, setDrawn] = useState(0)
+  const [shown, setShown] = useState(0)
+  useEffect(() => {
+    setDrawn(0)
+    setShown(0)
+    if (target <= 0) return
+    const raf = requestAnimationFrame(() => setDrawn(target))
+    const start = performance.now()
+    const DURATION = 900
+    let id = 0
+    const tick = (now: number) => {
+      const t = Math.min(1, (now - start) / DURATION)
+      const eased = 1 - Math.pow(1 - t, 3)
+      setShown(Math.round(target * eased))
+      if (t < 1) id = requestAnimationFrame(tick)
+    }
+    id = requestAnimationFrame(tick)
+    return () => {
+      cancelAnimationFrame(raf)
+      cancelAnimationFrame(id)
+    }
+  }, [target])
 
   return (
     <Card className="gap-4 py-5">
@@ -76,14 +101,17 @@ export function ReadinessSection() {
         ) : (
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:gap-8">
             <div className="shrink-0">
-              <div className="display-num text-[44px]">
-                {r.score}
+              <div className="display-num text-[44px] tabular-nums">
+                {shown}
                 <span className="ml-1 text-[18px] text-muted-foreground">/ 100</span>
               </div>
               <div className="mt-2 h-1.5 w-40 overflow-hidden rounded-full bg-muted">
                 <div
-                  className={cn("h-full rounded-full transition-[width] duration-700", r.zone && ZONE_BAR[r.zone])}
-                  style={{ width: `${r.score}%` }}
+                  className={cn(
+                    "h-full rounded-full motion-safe:[transition:width_900ms_cubic-bezier(0.22,1,0.36,1)]",
+                    r.zone && ZONE_BAR[r.zone]
+                  )}
+                  style={{ width: `${drawn}%` }}
                 />
               </div>
               {r.targetStrain && (

@@ -2,23 +2,33 @@ import {
   addDays,
   endOfWeek,
   format,
+  isWeekend,
   parseISO,
   startOfDay,
   startOfWeek,
 } from "date-fns"
 import { dateKey } from "./calc"
-import type { CardioEntry, FoodEntry, WorkoutSession } from "./types"
+import { sleepEndsOn } from "./recovery"
+import type { CardioEntry, FoodEntry, SleepEntry, WorkoutSession } from "./types"
 
 /**
- * 0 = tracked day, nothing logged · 1 = calories logged · 2 = calories + a
- * workout of any kind · 3 = future day (hasn't happened yet) · 4 = before the
- * tracking start date (drawn faintly so the start date reads as a boundary).
+ * How complete a tracked day was:
+ *   none    – nothing logged
+ *   one     – one of food / sleep / workout
+ *   two     – two of the three (typically food + sleep on a rest day)
+ *   diamond – food + sleep + a workout, or food + sleep on a weekend
+ *             (weekends are rest days, so that's the full set)
+ *   future  – hasn't happened yet (hollow)
+ *   before  – before the tracking start date (faint, so the start reads as a boundary)
  */
-export type ConsistencyLevel = 0 | 1 | 2 | 3 | 4
+export type ConsistencyLevel = "none" | "one" | "two" | "diamond" | "future" | "before"
 
 export interface ConsistencyDay {
   date: string // yyyy-MM-dd
   level: ConsistencyLevel
+  food: boolean
+  sleep: boolean
+  workout: boolean
 }
 
 export interface ConsistencyStats {
@@ -29,7 +39,7 @@ export interface ConsistencyStats {
   trackStart: string // yyyy-MM-dd
   currentStreak: number
   longestStreak: number
-  /** Days with calories logged, from the tracking start through today. */
+  /** Days with anything logged, from the tracking start through today. */
   trackedDays: number
   /** Calendar days from the tracking start through today. */
   totalDays: number
@@ -39,7 +49,11 @@ export interface ConsistencyInput {
   foodLog: FoodEntry[]
   workoutLog: WorkoutSession[]
   cardioLog: CardioEntry[]
+  sleepLog: SleepEntry[]
 }
+
+const TRACKED: ReadonlySet<ConsistencyLevel> = new Set(["none", "one", "two", "diamond"])
+const LOGGED: ReadonlySet<ConsistencyLevel> = new Set(["one", "two", "diamond"])
 
 const WEEK = { weekStartsOn: 1 as const } // Monday
 
@@ -59,6 +73,9 @@ export function earliestLogDate(input: ConsistencyInput): Date | null {
     if (!earliest || e.datetime < earliest) earliest = e.datetime
   }
   for (const e of input.cardioLog) {
+    if (!earliest || e.datetime < earliest) earliest = e.datetime
+  }
+  for (const e of input.sleepLog) {
     if (!earliest || e.datetime < earliest) earliest = e.datetime
   }
   if (!earliest) return null
@@ -97,35 +114,40 @@ export function buildConsistency(
   const workoutDays = new Set<string>()
   for (const e of input.workoutLog) workoutDays.add(dateKey(e.datetime))
   for (const e of input.cardioLog) workoutDays.add(dateKey(e.datetime))
+  // Sleep counts for the day it ends (last night → today).
+  const sleepDays = new Set(input.sleepLog.map(sleepEndsOn))
 
   const todayKey = format(today, "yyyy-MM-dd")
   const days: ConsistencyDay[] = []
   let todayIndex = -1
   for (let cursor = gridStart; cursor <= gridEnd; cursor = addDays(cursor, 1)) {
     const key = format(cursor, "yyyy-MM-dd")
+    const food = foodDays.has(key)
+    const sleep = sleepDays.has(key)
+    const workout = workoutDays.has(key)
     let level: ConsistencyLevel
     if (cursor > today) {
-      level = 3
+      level = "future"
     } else if (cursor < trackStart) {
-      level = 4
+      level = "before"
     } else {
-      const hasFood = foodDays.has(key)
-      const hasWorkout = workoutDays.has(key)
-      level = !hasFood ? 0 : hasWorkout ? 2 : 1
+      const logged = Number(food) + Number(sleep) + Number(workout)
+      const fullSet = food && sleep && (workout || isWeekend(cursor))
+      level = fullSet ? "diamond" : logged >= 2 ? "two" : logged === 1 ? "one" : "none"
     }
     if (key === todayKey) todayIndex = days.length
-    days.push({ date: key, level })
+    days.push({ date: key, level, food, sleep, workout })
   }
 
-  // Stats only over the tracked range (levels 0–2, which are contiguous).
+  // Stats only over the tracked range (start → today, which is contiguous).
   let longestStreak = 0
   let run = 0
   let trackedDays = 0
   let totalDays = 0
   for (const d of days) {
-    if (d.level > 2) continue
+    if (!TRACKED.has(d.level)) continue
     totalDays++
-    if (d.level >= 1) {
+    if (LOGGED.has(d.level)) {
       trackedDays++
       run++
       if (run > longestStreak) longestStreak = run
@@ -136,8 +158,7 @@ export function buildConsistency(
 
   let currentStreak = 0
   for (let i = todayIndex; i >= 0; i--) {
-    const lvl = days[i].level
-    if (lvl === 1 || lvl === 2) currentStreak++
+    if (LOGGED.has(days[i].level)) currentStreak++
     else break
   }
 

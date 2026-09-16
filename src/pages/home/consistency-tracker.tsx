@@ -14,13 +14,13 @@ import { useStore } from "@/store/store"
 /** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
   switch (level) {
-    case 4:
+    case "before":
       return "bg-[var(--heat-0)] opacity-40"
-    case 3:
+    case "future":
       return "border border-line-strong bg-transparent"
-    case 2:
+    case "two":
       return "bg-[var(--heat-4)]"
-    case 1:
+    case "one":
       return "bg-[var(--heat-2)]"
     default:
       return "bg-[var(--heat-0)]"
@@ -28,17 +28,25 @@ function tileClass(level: ConsistencyDay["level"]): string {
 }
 
 function tileTitle(day: ConsistencyDay): string {
-  const label =
-    day.level === 4
-      ? "before tracking started"
-      : day.level === 3
-        ? "hasn't happened yet"
-        : day.level === 2
-          ? "calories + workout"
-          : day.level === 1
-            ? "calories logged"
-            : "nothing logged"
-  return `${day.date}: ${label}`
+  if (day.level === "before") return `${day.date}: before tracking started`
+  if (day.level === "future") return `${day.date}: hasn't happened yet`
+  if (day.level === "none") return `${day.date}: nothing logged`
+  const parts = [day.food && "food", day.sleep && "sleep", day.workout && "workout"].filter(Boolean)
+  const suffix = day.level === "diamond" ? " — full day" : ""
+  return `${day.date}: ${parts.join(" + ")}${suffix}`
+}
+
+/**
+ * A cut gem for a complete day. Faceted with a conic gradient under a
+ * diamond clip, a specular hotspot, a soft glow, and a single light sweep
+ * on mount (staggered by column so the grid glitters in from the left).
+ */
+function Gem({ delayMs, title }: { delayMs: number; title: string }) {
+  return (
+    <span className="gem" title={title} style={{ "--gem-delay": `${delayMs}ms` } as React.CSSProperties}>
+      <span className="gem-body" />
+    </span>
+  )
 }
 
 function parseDate(value: string): Date | null {
@@ -59,11 +67,11 @@ const COL_WIDTH = TILE_SIZE + GAP
 const FUTURE_PEEK_WEEKS = 3
 
 export function ConsistencyTracker() {
-  const { foodLog, workoutLog, cardioLog, settings } = useStore()
+  const { foodLog, workoutLog, cardioLog, sleepLog, settings } = useStore()
   const scrollRef = useRef<HTMLDivElement>(null)
 
   const stats = useMemo(() => {
-    const input = { foodLog, workoutLog, cardioLog }
+    const input = { foodLog, workoutLog, cardioLog, sleepLog }
     const start = parseDate(settings.trackingStartDate) ?? earliestLogDate(input)
     const goal = parseDate(settings.goalWeightDate)
     return buildConsistency(input, start, goal)
@@ -71,6 +79,7 @@ export function ConsistencyTracker() {
     foodLog,
     workoutLog,
     cardioLog,
+    sleepLog,
     settings.trackingStartDate,
     settings.goalWeightDate,
   ])
@@ -162,23 +171,48 @@ export function ConsistencyTracker() {
                 }}
               >
                 {weeks.flatMap((week, wi) =>
-                  week.map((day, di) => (
-                    <span
-                      key={`${wi}-${di}`}
-                      className={cn("rounded-[3.5px]", tileClass(day.level))}
-                      title={tileTitle(day)}
-                    />
-                  ))
+                  week.map((day, di) =>
+                    day.level === "diamond" ? (
+                      <Gem
+                        key={`${wi}-${di}`}
+                        title={tileTitle(day)}
+                        // sweep left → right across the visible weeks
+                        delayMs={Math.max(0, wi - todayCol + 12) * 55 + di * 20}
+                      />
+                    ) : (
+                      <span
+                        key={`${wi}-${di}`}
+                        className={cn("rounded-[3.5px]", tileClass(day.level))}
+                        title={tileTitle(day)}
+                      />
+                    )
+                  )
                 )}
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mt-3 text-xs text-muted-foreground">
-          {stats.trackedDays} day{stats.trackedDays === 1 ? "" : "s"} tracked in{" "}
-          {weekCount} week{weekCount === 1 ? "" : "s"} · longest streak{" "}
-          {stats.longestStreak} day{stats.longestStreak === 1 ? "" : "s"}
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          <span>
+            {stats.trackedDays} day{stats.trackedDays === 1 ? "" : "s"} tracked in{" "}
+            {weekCount} week{weekCount === 1 ? "" : "s"} · longest streak{" "}
+            {stats.longestStreak} day{stats.longestStreak === 1 ? "" : "s"}
+          </span>
+          <span className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5">
+              <span className="size-[11px] rounded-[3px] bg-[var(--heat-2)]" /> one logged
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="size-[11px] rounded-[3px] bg-[var(--heat-4)]" /> two
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="gem gem-static" style={{ width: 11, height: 11 }}>
+                <span className="gem-body" />
+              </span>{" "}
+              food + sleep + workout
+            </span>
+          </span>
         </div>
       </CardContent>
     </Card>

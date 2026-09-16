@@ -329,6 +329,76 @@
 }
 
 @layer components {
+  /* ── Consistency gem: a complete day (food + sleep + workout) ──
+     Outer span carries the glow (a drop-shadow follows the clipped shape;
+     a box-shadow wouldn't), the inner one is the cut stone: conic facets
+     under a diamond clip, a specular hotspot, and a one-shot light sweep. */
+  .gem {
+    position: relative;
+    display: block;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 0 2.5px var(--green-glow)) drop-shadow(0 0 6px rgba(29, 185, 84, 0.35));
+    animation: gem-glow 5s ease-in-out infinite;
+    animation-delay: var(--gem-delay, 0ms);
+  }
+  .gem-body {
+    position: absolute;
+    inset: -1px;
+    clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+    background:
+      radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.55) 12%, rgba(255, 255, 255, 0) 38%),
+      conic-gradient(
+        from 0deg at 50% 50%,
+        #eafff0 0deg,
+        #7be49c 40deg,
+        #0f7a38 90deg,
+        #29c264 130deg,
+        #c6edd4 180deg,
+        #1db954 225deg,
+        #0c5d2b 270deg,
+        #82dca6 320deg,
+        #eafff0 360deg
+      );
+    overflow: hidden;
+  }
+  /* facet edges: a thin lighter cross through the table so the cut reads */
+  .gem-body::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, transparent 47%, rgba(255, 255, 255, 0.45) 50%, transparent 53%),
+      linear-gradient(0deg, transparent 47%, rgba(255, 255, 255, 0.3) 50%, transparent 53%);
+    mix-blend-mode: screen;
+  }
+  /* the sweep: a bright band that crosses the stone once on mount */
+  .gem-body::before {
+    content: "";
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.95) 50%, transparent 62%);
+    transform: translateX(-120%);
+    animation: gem-shine 1100ms cubic-bezier(0.4, 0, 0.2, 1) 1 both;
+    animation-delay: calc(var(--gem-delay, 0ms) + 250ms);
+  }
+  .gem-static,
+  .gem-static .gem-body::before {
+    animation: none;
+  }
+  @keyframes gem-shine {
+    from { transform: translateX(-120%); }
+    to { transform: translateX(120%); }
+  }
+  @keyframes gem-glow {
+    0%, 100% { filter: drop-shadow(0 0 2.5px var(--green-glow)) drop-shadow(0 0 6px rgba(29, 185, 84, 0.35)); }
+    50% { filter: drop-shadow(0 0 3.5px var(--green-glow)) drop-shadow(0 0 9px rgba(29, 185, 84, 0.55)); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .gem, .gem-body::before { animation: none; }
+    .gem-body::before { transform: translateX(120%); }
+  }
+
   /* Frosted surfaces */
   .glass {
     background: var(--glass-bg);
