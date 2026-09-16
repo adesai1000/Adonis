@@ -8,40 +8,44 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
 import { DateTimePicker } from "@/components/common/datetime-picker"
-import { EmptyState, FieldError, HMSInput } from "@/components/common/bits"
+import { EmptyState, FieldError } from "@/components/common/bits"
 import { fmt, formatDateTime, formatTime, isoNow } from "@/lib/calc"
 import { sleepForDay } from "@/lib/recovery"
 import { useDraft } from "@/lib/storage"
 import { useStore } from "@/store/store"
 import type { SleepKind } from "@/lib/types"
-import { cn } from "@/lib/utils"
 import { format, subDays } from "date-fns"
 
 interface SleepDraft {
+  /** Went to bed / nap started (ISO). */
   datetime: string
+  /** Woke up (ISO). */
+  wakeAt: string
   kind: SleepKind
-  h: string
-  m: string
   notes: string
 }
 
-const initialDraft = (): SleepDraft => ({
-  datetime: isoNow(),
-  kind: "sleep",
-  h: "",
-  m: "",
+/** Typical spans used to pre-fill the pair: 8 h overnight, a 30 min nap. */
+const DEFAULT_SPAN_SEC: Record<SleepKind, number> = { sleep: 8 * 3600, nap: 30 * 60 }
+
+/** "Woke up just now" after a typical span, so the form is valid on arrival. */
+function defaultTimes(kind: SleepKind): { datetime: string; wakeAt: string } {
+  const now = Date.now()
+  return {
+    datetime: new Date(now - DEFAULT_SPAN_SEC[kind] * 1000).toISOString(),
+    wakeAt: new Date(now).toISOString(),
+  }
+}
+
+const initialDraft = (kind: SleepKind = "sleep"): SleepDraft => ({
+  ...defaultTimes(kind),
+  kind,
   notes: "",
 })
 
-/** One-tap durations, in minutes. */
-const PRESETS: Record<SleepKind, number[]> = {
-  sleep: [360, 420, 450, 480, 510, 540],
-  nap: [20, 30, 45, 60, 90],
-}
-
-function toNum(v: string): number {
-  const n = parseFloat(v)
-  return isFinite(n) ? n : 0
+function spanSec(bed: string, wake: string): number {
+  const sec = (new Date(wake).getTime() - new Date(bed).getTime()) / 1000
+  return isFinite(sec) ? Math.round(sec) : 0
 }
 
 function hoursLabel(sec: number): string {
@@ -55,17 +59,17 @@ export function SleepTab() {
   const { sleepLog, addSleep, settings } = useStore()
   const [draft, setDraft] = useDraft<SleepDraft>("wt_draft_sleep", initialDraft())
 
-  // Keep an abandoned draft's date/time from going stale across visits —
-  // always start a fresh visit to this tab at the current moment.
+  // Keep an abandoned draft's times from going stale across visits — a
+  // fresh visit assumes you just woke up.
   useEffect(() => {
-    setDraft((d) => ({ ...d, datetime: isoNow() }))
+    setDraft((d) => ({ ...d, ...defaultTimes(d.kind) }))
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isNap = draft.kind === "nap"
-  const durationSec = Math.round((toNum(draft.h) * 60 + toNum(draft.m)) * 60)
+  const durationSec = spanSec(draft.datetime, draft.wakeAt)
   const invalid = durationSec <= 0
-  const presetMin = Math.round(durationSec / 60)
+  const tooLong = durationSec > 20 * 3600
 
   const recent = useMemo(
     () =>
@@ -90,17 +94,13 @@ export function SleepTab() {
     return days > 0 ? total / days / 3600 : null
   }, [sleepLog])
 
-  function setPreset(min: number) {
-    setDraft((d) => ({
-      ...d,
-      h: String(Math.floor(min / 60)),
-      m: String(min % 60),
-    }))
+  function setKind(kind: SleepKind) {
+    setDraft((d) => ({ ...d, kind, ...defaultTimes(kind) }))
   }
 
   function handleSubmit() {
     if (invalid) {
-      toast.error("Enter how long you slept")
+      toast.error("Wake-up time must be after you went to bed")
       return
     }
     addSleep({
@@ -110,7 +110,7 @@ export function SleepTab() {
       notes: draft.notes.trim() || undefined,
     })
     toast.success(isNap ? "Nap logged" : "Sleep logged")
-    setDraft({ ...initialDraft(), kind: draft.kind })
+    setDraft(initialDraft(draft.kind))
   }
 
   return (
@@ -122,7 +122,7 @@ export function SleepTab() {
           variant="outline"
           value={draft.kind}
           onValueChange={(v) => {
-            if (v === "sleep" || v === "nap") setDraft((d) => ({ ...d, kind: v }))
+            if (v === "sleep" || v === "nap") setKind(v)
           }}
           className="grid w-full grid-cols-2"
         >
@@ -143,42 +143,22 @@ export function SleepTab() {
         onChange={(datetime) => setDraft((d) => ({ ...d, datetime }))}
       />
 
-      <div className="space-y-1.5">
-        <Label className="text-xs text-muted-foreground">Duration</Label>
-        <div className="grid grid-cols-2 gap-2">
-          <HMSInput
-            label="hrs"
-            value={draft.h}
-            onChange={(h) => setDraft((d) => ({ ...d, h }))}
-          />
-          <HMSInput
-            label="min"
-            value={draft.m}
-            onChange={(m) => setDraft((d) => ({ ...d, m }))}
-            max={59}
-          />
-        </div>
-        <div className="flex flex-wrap gap-1.5 pt-1">
-          {PRESETS[draft.kind].map((min) => (
-            <button
-              key={min}
-              type="button"
-              onClick={() => setPreset(min)}
-              className={cn(
-                "rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-                presetMin === min
-                  ? "bg-foreground text-background dark:bg-white/15 dark:text-foreground"
-                  : "bg-muted text-ink-2 hover:text-foreground"
-              )}
-            >
-              {hoursLabel(min * 60)}
-            </button>
-          ))}
-        </div>
-        {invalid && (draft.h !== "" || draft.m !== "") && (
-          <FieldError>Duration must be above zero.</FieldError>
-        )}
+      <DateTimePicker
+        label="Woke up at"
+        value={draft.wakeAt}
+        onChange={(wakeAt) => setDraft((d) => ({ ...d, wakeAt }))}
+      />
+
+      <div className="flex items-center justify-between rounded-[14px] border border-line bg-muted/50 px-4 py-3">
+        <span className="text-sm text-muted-foreground">Duration</span>
+        <span className="text-base font-semibold tabular-nums">
+          {invalid ? "-" : hoursLabel(durationSec)}
+        </span>
       </div>
+      {invalid && <FieldError>Wake-up time must be after you went to bed.</FieldError>}
+      {!invalid && tooLong && (
+        <FieldError>That's over 20 hours — double-check the dates.</FieldError>
+      )}
 
       <div className="space-y-1.5">
         <Label className="text-xs text-muted-foreground">Notes</Label>
