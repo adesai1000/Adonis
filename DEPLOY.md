@@ -5,8 +5,10 @@ functions add the extras:
 
 - `api/sync.ts` – a tiny key/value store so the same data can be shared between
   your phone and computer using a shared "sync code".
-- `api/off-search.ts` – proxies Open Food Facts text search (the search service
-  isn't CORS-open) so "Search foods" works from the browser. No keys needed.
+- `api/food-search.ts` – food search and barcode fallback. Merges Open Food
+  Facts (packaged goods) with USDA FoodData Central (generic foods + US branded).
+  Works without keys via USDA's shared DEMO_KEY (30 requests/hour); set
+  `USDA_FDC_API_KEY` for the full 1,000/hour — see `.env.example`.
 - `api/keepalive.ts` – pinged once a day by a Vercel Cron Job (`vercel.json`) so
   the free Upstash database never goes idle long enough to be archived.
 

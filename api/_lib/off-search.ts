@@ -15,18 +15,10 @@ const FIELDS = [
   "nutriments",
 ].join(",")
 
+import type { FoodSearchHit } from "./food-types"
+
 export const MIN_QUERY_LENGTH = 2
 export const MAX_RESULTS = 25
-
-/** One search result, trimmed to what the picker shows. */
-export interface OffSearchHit {
-  code: string
-  name: string
-  brand?: string
-  quantity?: string
-  /** kcal per 100 g, when the database has it. */
-  kcalPer100g?: number
-}
 
 interface RawHit {
   code?: string
@@ -58,7 +50,7 @@ function firstBrand(brands: string[] | string | undefined, name: string): string
 export async function searchOpenFoodFacts(
   query: string,
   pageSize = MAX_RESULTS
-): Promise<OffSearchHit[]> {
+): Promise<FoodSearchHit[]> {
   const url = new URL(SEARCH_URL)
   url.searchParams.set("q", query)
   url.searchParams.set("page_size", String(pageSize))
@@ -72,7 +64,7 @@ export async function searchOpenFoodFacts(
   const data = (await res.json()) as { hits?: RawHit[] }
 
   const seen = new Set<string>()
-  const hits: OffSearchHit[] = []
+  const hits: FoodSearchHit[] = []
   for (const h of data.hits ?? []) {
     const code = (h.code || "").replace(/\D/g, "")
     const name = (h.product_name_en || h.product_name || "").trim()
@@ -88,11 +80,14 @@ export async function searchOpenFoodFacts(
     if (!hasMacros) continue
     seen.add(code)
     hits.push({
-      code,
+      source: "off",
+      sourceId: code,
+      barcode: code,
       name,
       brand: firstBrand(h.brands, name),
       quantity: h.quantity?.trim() || undefined,
       kcalPer100g: kcal != null ? Math.round(kcal) : undefined,
+      kind: "packaged",
     })
   }
   return hits

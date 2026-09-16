@@ -17,6 +17,7 @@ import { fmtCompact } from "@/lib/calc"
 import {
   defaultBasis,
   lookupProduct,
+  lookupProductFallback,
   productDisplayName,
   productMacros,
   productToMeal,
@@ -92,19 +93,16 @@ export function ProductScanFlow({
     }
     setStep({ kind: "lookup", code: digits })
     try {
-      const product = await lookupProduct(digits)
+      let product = await lookupProduct(digits)
+      if (product && !product.per100g && !product.perServing) product = null
+      // Not in Open Food Facts (or no nutrition there): try USDA's branded database.
+      if (!product) product = await lookupProductFallback(digits)
       if (!product) {
-        toast.error("That barcode isn't in Open Food Facts yet.")
+        toast.error("That barcode isn't in Open Food Facts or USDA yet.")
         close()
         return
       }
-      if (!product.per100g && !product.perServing) {
-        toast.error(`${productDisplayName(product)} has no nutrition data on file.`)
-        close()
-        return
-      }
-      setBasis(defaultBasis(product))
-      setStep({ kind: "confirm", product })
+      showProduct(product)
     } catch {
       toast.error(
         navigator.onLine === false
@@ -113,6 +111,11 @@ export function ProductScanFlow({
       )
       close()
     }
+  }
+
+  function showProduct(product: ScannedProduct) {
+    setBasis(defaultBasis(product))
+    setStep({ kind: "confirm", product })
   }
 
   function confirm() {
@@ -144,7 +147,22 @@ export function ProductScanFlow({
       <SearchDialog
         open={effective.kind === "search"}
         onClose={close}
-        onPick={(hit) => handleDetected(hit.code)}
+        onPick={(hit) => {
+          if (hit.product) {
+            // USDA rows arrive with nutrition; skip the barcode round-trip.
+            const existing = hit.barcode
+              ? meals.find((m) => m.barcode && m.barcode === hit.barcode)
+              : undefined
+            if (existing) {
+              close()
+              onExisting(existing)
+            } else {
+              showProduct(hit.product)
+            }
+          } else if (hit.barcode) {
+            handleDetected(hit.barcode)
+          }
+        }}
       />
 
       {/* Lookup spinner */}
@@ -183,7 +201,11 @@ export function ProductScanFlow({
                   <span className="min-w-0 break-words">{productDisplayName(product)}</span>
                 </DialogTitle>
                 <DialogDescription>
-                  {[product.packageQuantity, `barcode ${product.barcode}`]
+                  {[
+                    product.packageQuantity,
+                    product.barcode ? `barcode ${product.barcode}` : null,
+                    product.source === "usda" ? "USDA FoodData Central" : "Open Food Facts",
+                  ]
                     .filter(Boolean)
                     .join(" · ")}
                 </DialogDescription>
@@ -309,7 +331,7 @@ function SearchDialog({
             Search foods
           </DialogTitle>
           <DialogDescription>
-            Packaged products from Open Food Facts. Search by name or brand.
+            Generic foods from USDA plus packaged products from Open Food Facts.
           </DialogDescription>
         </DialogHeader>
 
@@ -366,7 +388,7 @@ function SearchDialog({
           {state.kind === "results" && state.hits.length > 0 && (
             <ul className="divide-y divide-line">
               {state.hits.map((hit) => (
-                <li key={hit.code}>
+                <li key={`${hit.source}:${hit.sourceId}`}>
                   <button
                     type="button"
                     onClick={() => onPick(hit)}
@@ -375,7 +397,12 @@ function SearchDialog({
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-sm font-medium">{hit.name}</p>
                       <p className="truncate text-xs text-muted-foreground">
-                        {[hit.brand, hit.quantity].filter(Boolean).join(" · ") || "\u00a0"}
+                        {[
+                          hit.kind === "generic" ? "USDA generic" : hit.brand,
+                          hit.quantity,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ") || "\u00a0"}
                       </p>
                     </div>
                     {hit.kcalPer100g != null && (

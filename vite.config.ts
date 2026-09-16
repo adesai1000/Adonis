@@ -1,8 +1,8 @@
 import path from "path"
 import react from "@vitejs/plugin-react"
 import tailwindcss from "@tailwindcss/vite"
-import { defineConfig, type Plugin } from "vite"
-import { MIN_QUERY_LENGTH, searchOpenFoodFacts } from "./api/_lib/off-search"
+import { defineConfig, loadEnv, type Plugin } from "vite"
+import { lookupUpcFallback, searchFoods } from "./api/_lib/food-search"
 
 // Dev-only stand-in for the /api/sync serverless function. Keeps blobs in
 // memory (per dev-server lifetime) so device sync can be exercised locally.
@@ -40,21 +40,28 @@ function devSyncPlugin(): Plugin {
   }
 }
 
-// Dev-only stand-in for api/off-search.ts: same helper, same JSON shape.
-function devOffSearchPlugin(): Plugin {
+// Dev-only stand-in for api/food-search.ts: same helpers, same JSON shapes.
+// `env` carries USDA_FDC_API_KEY from .env (never exposed to the client).
+function devFoodSearchPlugin(env: Record<string, string | undefined>): Plugin {
   return {
-    name: "dev-off-search",
+    name: "dev-food-search",
     configureServer(server) {
-      server.middlewares.use("/api/off-search", async (req, res) => {
+      server.middlewares.use("/api/food-search", async (req, res) => {
         res.setHeader("content-type", "application/json")
-        const q = (new URL(req.url || "", "http://localhost").searchParams.get("q") || "").trim()
-        if (q.length < MIN_QUERY_LENGTH) {
-          res.statusCode = 400
-          res.end(JSON.stringify({ error: `Type at least ${MIN_QUERY_LENGTH} characters.` }))
-          return
-        }
+        const params = new URL(req.url || "", "http://localhost").searchParams
         try {
-          res.end(JSON.stringify({ hits: await searchOpenFoodFacts(q) }))
+          const upc = (params.get("upc") || "").replace(/\D/g, "")
+          if (upc) {
+            res.end(JSON.stringify({ product: await lookupUpcFallback(upc, env) }))
+            return
+          }
+          const result = await searchFoods((params.get("q") || "").trim(), env)
+          if ("error" in result) {
+            res.statusCode = result.status
+            res.end(JSON.stringify({ error: result.error }))
+            return
+          }
+          res.end(JSON.stringify({ hits: result.hits }))
         } catch (e) {
           res.statusCode = 502
           res.end(JSON.stringify({ error: e instanceof Error ? e.message : "Search failed." }))
@@ -65,11 +72,15 @@ function devOffSearchPlugin(): Plugin {
 }
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react(), tailwindcss(), devSyncPlugin(), devOffSearchPlugin()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  // Server-side secrets for the dev middleware only; not in the client bundle.
+  const env = loadEnv(mode, process.cwd(), "")
+  return {
+    plugins: [react(), tailwindcss(), devSyncPlugin(), devFoodSearchPlugin(env)],
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
+      },
     },
-  },
+  }
 })

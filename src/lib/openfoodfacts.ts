@@ -1,4 +1,9 @@
 import type { Meal } from "./types"
+import type {
+  FoodMacros,
+  FoodProduct,
+  FoodSearchHit,
+} from "../../api/_lib/food-types"
 
 // ───────────────────────────── Open Food Facts ─────────────────────────────
 // Free, community-maintained product database keyed by barcode (EAN/UPC).
@@ -16,28 +21,9 @@ const FIELDS = [
   "nutriments",
 ].join(",")
 
-export interface ProductMacros {
-  calories: number
-  protein: number
-  carbs: number
-  fat: number
-  /** mg */
-  sodium: number
-}
-
-export interface ScannedProduct {
-  barcode: string
-  name: string
-  brand?: string
-  /** Package size as printed, e.g. "500 g". */
-  packageQuantity?: string
-  /** Serving as printed, e.g. "30 g". */
-  servingSize?: string
-  /** Serving weight in grams, when the database knows it. */
-  servingGrams?: number
-  per100g: ProductMacros | null
-  perServing: ProductMacros | null
-}
+export type ProductMacros = FoodMacros
+/** A resolved product from either source, ready for the serving dialog. */
+export type ScannedProduct = FoodProduct
 
 export type ServingBasis = "serving" | "100g"
 
@@ -126,6 +112,8 @@ export async function lookupProduct(barcode: string): Promise<ScannedProduct | n
   const brand = pickBrand(p.brands, name)
 
   return {
+    source: "off",
+    sourceId: p.code || code,
     barcode: p.code || code,
     name: name || `Product ${code}`,
     brand,
@@ -194,26 +182,23 @@ export function productToMeal(
     carbs: m.carbs,
     fat: m.fat,
     sodium: m.sodium,
-    barcode: p.barcode,
+    barcode: p.barcode || undefined,
     builtIn: false,
   }
 }
 
 // ───────────────────────────── Text search ─────────────────────────────
-/** One row of the search picker; full nutrition comes from lookupProduct(code). */
-export interface ProductSearchHit {
-  code: string
-  name: string
-  brand?: string
-  quantity?: string
-  kcalPer100g?: number
-}
+/**
+ * One row of the search picker. OFF rows resolve via lookupProduct(barcode);
+ * USDA rows carry `product` already.
+ */
+export type ProductSearchHit = FoodSearchHit
 
-/** Search by name via our proxy (the search service isn't CORS-open). */
+/** Search both sources by name via our proxy. */
 export async function searchProducts(query: string): Promise<ProductSearchHit[]> {
   const q = query.trim()
   if (q.length < 2) return []
-  const res = await fetch(`/api/off-search?q=${encodeURIComponent(q)}`, {
+  const res = await fetch(`/api/food-search?q=${encodeURIComponent(q)}`, {
     headers: { Accept: "application/json" },
   })
   if (!res.ok) {
@@ -228,4 +213,16 @@ export async function searchProducts(query: string): Promise<ProductSearchHit[]>
   }
   const json = (await res.json()) as { hits?: ProductSearchHit[] }
   return json.hits ?? []
+}
+
+/** Barcode fallback (USDA branded database) for codes Open Food Facts lacks. */
+export async function lookupProductFallback(barcode: string): Promise<ScannedProduct | null> {
+  const code = barcode.replace(/\D/g, "")
+  if (!code) return null
+  const res = await fetch(`/api/food-search?upc=${encodeURIComponent(code)}`, {
+    headers: { Accept: "application/json" },
+  })
+  if (!res.ok) return null
+  const json = (await res.json()) as { product?: ScannedProduct | null }
+  return json.product ?? null
 }
