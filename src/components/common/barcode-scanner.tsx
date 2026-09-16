@@ -42,77 +42,20 @@ export function BarcodeScanner({
   title?: string
   description?: string
 }) {
-  const videoRef = useRef<HTMLVideoElement>(null)
-  const [cam, setCam] = useState<CamState>("starting")
   const [manual, setManual] = useState("")
   const detectedRef = useRef(false)
   const onDetectedRef = useRef(onDetected)
   onDetectedRef.current = onDetected
 
-  useEffect(() => {
-    if (!open) return
-    detectedRef.current = false
-    setCam("starting")
-    setManual("")
-
-    const video = videoRef.current
-    if (!video || !navigator.mediaDevices?.getUserMedia) {
-      setCam("unavailable")
-      return
-    }
-
-    const hints = new Map()
-    hints.set(DecodeHintType.POSSIBLE_FORMATS, FORMATS)
-    hints.set(DecodeHintType.TRY_HARDER, true)
-    const reader = new BrowserMultiFormatReader(hints, {
-      delayBetweenScanAttempts: 120,
-    })
-
-    let controls: IScannerControls | null = null
-    let cancelled = false
-
-    reader
-      .decodeFromConstraints(
-        { video: { facingMode: { ideal: "environment" } }, audio: false },
-        video,
-        (result) => {
-          if (!result || detectedRef.current || cancelled) return
-          const text = result.getText().trim()
-          if (!text) return
-          detectedRef.current = true
-          controls?.stop()
-          onDetectedRef.current(text)
-        }
-      )
-      .then((c) => {
-        if (cancelled) {
-          c.stop()
-          return
-        }
-        controls = c
-        setCam("live")
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        const name = err instanceof Error ? err.name : ""
-        setCam(name === "NotAllowedError" || name === "SecurityError" ? "denied" : "unavailable")
-      })
-
-    return () => {
-      cancelled = true
-      controls?.stop()
-      // Belt and braces: release the stream even if ZXing didn't get to.
-      const stream = video.srcObject as MediaStream | null
-      stream?.getTracks().forEach((t) => t.stop())
-      video.srcObject = null
-    }
-  }, [open])
+  function emit(code: string) {
+    if (detectedRef.current) return
+    detectedRef.current = true
+    onDetectedRef.current(code)
+  }
 
   function submitManual() {
     const code = manual.replace(/\D/g, "")
-    if (!code || detectedRef.current) return
-    detectedRef.current = true
-    onDetectedRef.current(code)
+    if (code) emit(code)
   }
 
   return (
@@ -126,40 +69,9 @@ export function BarcodeScanner({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[18px] bg-black sm:aspect-[4/3]">
-          <video
-            ref={videoRef}
-            className="size-full object-cover"
-            muted
-            playsInline
-            autoPlay
-          />
-          {cam === "live" && (
-            <div
-              aria-hidden
-              className="pointer-events-none absolute inset-x-[12%] top-1/2 h-[38%] -translate-y-1/2 rounded-[14px] border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
-            />
-          )}
-          {cam !== "live" && (
-            <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-white/80">
-              {cam === "starting" && (
-                <span className="flex items-center gap-2">
-                  <Camera className="size-4 animate-pulse" />
-                  Starting camera…
-                </span>
-              )}
-              {cam === "denied" && (
-                <span>
-                  Camera access was blocked. Allow it in your browser settings, or
-                  type the barcode below.
-                </span>
-              )}
-              {cam === "unavailable" && (
-                <span>No camera available here. Type the barcode below instead.</span>
-              )}
-            </div>
-          )}
-        </div>
+        {/* Mounted only while the dialog is open, so the camera starts once
+            the portal has actually put the <video> in the DOM. */}
+        {open && <CameraView onDetected={emit} />}
 
         <div className="space-y-1.5">
           <Label htmlFor="barcode-manual" className="text-xs text-muted-foreground">
@@ -193,5 +105,109 @@ export function BarcodeScanner({
         </div>
       </DialogContent>
     </Dialog>
+  )
+}
+
+/** The live viewfinder. Starts the camera on mount, releases it on unmount. */
+function CameraView({ onDetected }: { onDetected: (code: string) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null)
+  const [cam, setCam] = useState<CamState>("starting")
+  const onDetectedRef = useRef(onDetected)
+  onDetectedRef.current = onDetected
+
+  useEffect(() => {
+    const video = videoRef.current
+    if (!video || !navigator.mediaDevices?.getUserMedia) {
+      setCam("unavailable")
+      return
+    }
+
+    const hints = new Map()
+    hints.set(DecodeHintType.POSSIBLE_FORMATS, FORMATS)
+    hints.set(DecodeHintType.TRY_HARDER, true)
+    const reader = new BrowserMultiFormatReader(hints, {
+      delayBetweenScanAttempts: 120,
+    })
+
+    let controls: IScannerControls | null = null
+    let cancelled = false
+    let fired = false
+
+    reader
+      .decodeFromConstraints(
+        { video: { facingMode: { ideal: "environment" } }, audio: false },
+        video,
+        (result) => {
+          if (!result || fired || cancelled) return
+          const text = result.getText().trim()
+          if (!text) return
+          fired = true
+          controls?.stop()
+          onDetectedRef.current(text)
+        }
+      )
+      .then((c) => {
+        if (cancelled) {
+          c.stop()
+          return
+        }
+        controls = c
+        setCam("live")
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return
+        const name = err instanceof Error ? err.name : ""
+        setCam(
+          name === "NotAllowedError" || name === "SecurityError"
+            ? "denied"
+            : "unavailable"
+        )
+      })
+
+    return () => {
+      cancelled = true
+      controls?.stop()
+      // Belt and braces: release the stream even if ZXing didn't get to.
+      const stream = video.srcObject as MediaStream | null
+      stream?.getTracks().forEach((t) => t.stop())
+      video.srcObject = null
+    }
+  }, [])
+
+  return (
+    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[18px] bg-black sm:aspect-[4/3]">
+      <video
+        ref={videoRef}
+        className="size-full object-cover"
+        muted
+        playsInline
+        autoPlay
+      />
+      {cam === "live" && (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-[12%] top-1/2 h-[38%] -translate-y-1/2 rounded-[14px] border-2 border-white/80 shadow-[0_0_0_9999px_rgba(0,0,0,0.35)]"
+        />
+      )}
+      {cam !== "live" && (
+        <div className="absolute inset-0 grid place-items-center px-6 text-center text-sm text-white/80">
+          {cam === "starting" && (
+            <span className="flex items-center gap-2">
+              <Camera className="size-4 animate-pulse" />
+              Starting camera…
+            </span>
+          )}
+          {cam === "denied" && (
+            <span>
+              Camera access was blocked. Allow it in your browser settings, or
+              type the barcode below.
+            </span>
+          )}
+          {cam === "unavailable" && (
+            <span>No camera available here. Type the barcode below instead.</span>
+          )}
+        </div>
+      )}
+    </div>
   )
 }
