@@ -329,10 +329,11 @@
 }
 
 @layer components {
-  /* ── Consistency gem fallback ──
-     The real stone is WebGL (OpalField). This flat disc only shows when
-     WebGL is unavailable (html.no-webgl), so it must never look like the
-     shader: no facets, no texture, just a soft tinted circle.
+  /* ── Consistency diamond fallback ──
+     The real stone is WebGL (DiamondField). This flat disc only shows when
+     that field could not start (its host gets .no-webgl), so it must never
+     pretend to be the shader: no facets, just a soft tinted circle, white
+     or yellow by tier.
      One rule owns `display` here: a separate `.gem { display: block }` used
      to follow this one at equal specificity and won, so the disc was painted
      over the WebGL stone in every browser. */
@@ -349,8 +350,12 @@
     position: absolute;
     inset: 2px;
     border-radius: 50%;
-    background: radial-gradient(circle at 35% 30%, #d8f4ff 0%, #8fb7ff 55%, #5a78d6 100%);
-    box-shadow: 0 0 6px rgba(140, 190, 255, 0.45);
+    background: radial-gradient(circle at 35% 30%, #ffffff 0%, #dfe6ee 55%, #96a3b5 100%);
+    box-shadow: 0 0 6px rgba(190, 205, 225, 0.55);
+  }
+  .gem-body[data-tier="2"] {
+    background: radial-gradient(circle at 35% 30%, #fff7cf 0%, #ffd23f 55%, #d99a00 100%);
+    box-shadow: 0 0 6px rgba(255, 200, 60, 0.55);
   }
 
   /* Frosted surfaces */

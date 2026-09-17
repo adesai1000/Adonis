@@ -11,11 +11,11 @@ import {
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 import {
-  Opal,
-  OpalField,
-  opalCanvasMargin,
-  type OpalGem,
-} from "@/components/common/opal-field"
+  Diamond,
+  DiamondField,
+  diamondCanvasMargin,
+  type DiamondGem,
+} from "@/components/common/diamond-field"
 
 /** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
 function tileClass(level: ConsistencyDay["level"]): string {
@@ -37,21 +37,26 @@ function tileTitle(day: ConsistencyDay): string {
   if (day.level === "before") return `${day.date}: before tracking started`
   if (day.level === "future") return `${day.date}: hasn't happened yet`
   if (day.level === "none") return `${day.date}: nothing logged`
-  const parts = [day.food && "food", day.sleep && "sleep", day.workout && "workout"].filter(Boolean)
-  const suffix = day.level === "diamond" ? " — full day" : ""
+  const parts = [
+    day.food && "food",
+    day.sleep && "sleep",
+    day.workout && "workout",
+    day.steps && "steps",
+  ].filter(Boolean)
+  const suffix = day.level === "diamond" ? (day.steps ? " — full day + steps" : " — full day") : ""
   return `${day.date}: ${parts.join(" + ")}${suffix}`
 }
 
 /**
- * A complete day's cell. The stone itself is drawn by the WebGL field laid
+ * A complete day's cell. The diamond itself is drawn by the WebGL field laid
  * over the grid; this keeps the cell's place (and its tooltip). The disc
  * inside is the fallback for browsers without WebGL and is hidden otherwise.
  */
-function GemCell({ title }: { title: string }) {
+function GemCell({ title, tier }: { title: string; tier: 1 | 2 }) {
   return (
     <span className="gem-cell relative" title={title}>
       <span className="gem-fallback">
-        <span className="gem-body" />
+        <span className="gem-body" data-tier={tier} />
       </span>
     </span>
   )
@@ -81,19 +86,15 @@ const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
 const FUTURE_PEEK_WEEKS = 3
 /**
- * How far a stone's halo is still visible past its cell, in CSS px. The grid
- * keeps this much room on its left and right inside the scrolled content, so
- * it scrolls with the grid instead of letting scrolled-in tiles paint over
- * the day labels. (The OpalField canvas reaches further, but that fringe is
- * transparent and the scroll box simply clips it sideways.)
+ * How far the stones' canvas reaches past the grid on every side, in CSS px.
+ * The grid keeps this much room on its left and right inside the scrolled
+ * content, so the canvas scrolls with the grid without being clipped or
+ * adding scroll width; below the grid the scroll box must fit it too, or the
+ * overflow would make the box scrollable vertically, and that padding
+ * doubles as the gap to the legend. The top edge sits inside the month row.
  */
-const HALO_ROOM = 8
-/**
- * Below the grid the scroll box must fit the whole canvas, or the overflow
- * would make the box scrollable vertically; that padding doubles as the gap
- * to the legend. The canvas's top edge already sits inside the month row.
- */
-const CANVAS_PAD = opalCanvasMargin(TILE_SIZE)
+const CANVAS_PAD = diamondCanvasMargin(TILE_SIZE)
+const HALO_ROOM = CANVAS_PAD
 
 export function ConsistencyTracker() {
   const { foodLog, workoutLog, cardioLog, sleepLog, settings } = useStore()
@@ -155,10 +156,10 @@ export function ConsistencyTracker() {
 
   const weekCount = Math.max(1, Math.ceil(stats.totalDays / 7))
 
-  // Every complete day becomes a stone for the WebGL field, placed on the
+  // Every complete day becomes a diamond for the WebGL field, placed on the
   // same grid coordinates its cell occupies.
-  const gems = useMemo<OpalGem[]>(() => {
-    const out: OpalGem[] = []
+  const gems = useMemo<DiamondGem[]>(() => {
+    const out: DiamondGem[] = []
     weeks.forEach((week, wi) =>
       week.forEach((day, di) => {
         if (day.level !== "diamond") return
@@ -179,7 +180,7 @@ export function ConsistencyTracker() {
   const gridHeight = 7 * TILE_SIZE + 6 * GAP
 
   return (
-    <Card className="gap-4 py-5">
+    <Card className="gap-4 py-5" data-section="tracker">
       <CardHeader className="flex flex-row items-center gap-3 px-5">
         <span className="grid size-6 place-items-center rounded-lg bg-muted text-ink-2">
           <Grid3x3 className="size-3.5" />
@@ -237,11 +238,15 @@ export function ConsistencyTracker() {
                   gap: GAP,
                 }}
               >
-                <OpalField gems={gems} width={gridWidth} height={gridHeight} />
+                <DiamondField gems={gems} width={gridWidth} height={gridHeight} clipRef={scrollRef} />
                 {weeks.flatMap((week, wi) =>
                   week.map((day, di) =>
                     day.level === "diamond" ? (
-                      <GemCell key={`${wi}-${di}`} title={tileTitle(day)} />
+                      <GemCell
+                        key={`${wi}-${di}`}
+                        title={tileTitle(day)}
+                        tier={day.steps ? 2 : 1}
+                      />
                     ) : (
                       <span
                         key={`${wi}-${di}`}
@@ -273,11 +278,14 @@ export function ConsistencyTracker() {
             </span>
             <span
               className="flex items-center gap-1.5"
-              title="Food, sleep and a workout all logged (food and sleep on a weekend)"
+              title="Food, sleep and a workout all logged (food and sleep on a weekend): a diamond"
             >
               <LegendStone tier={1} /> full day
             </span>
-            <span className="flex items-center gap-1.5" title="A full day with steps logged too">
+            <span
+              className="flex items-center gap-1.5"
+              title="A full day with steps logged too: a yellow diamond"
+            >
               <LegendStone tier={2} /> full day + steps
             </span>
           </span>
@@ -287,7 +295,7 @@ export function ConsistencyTracker() {
   )
 }
 
-/** A single stone for the legend — the same component as the demo stone. */
+/** A single stone for the legend: the same component as the tracker's stones. */
 function LegendStone({ tier }: { tier: 1 | 2 }) {
-  return <Opal size={30} tier={tier} seed={tier * 17} className="align-middle" />
+  return <Diamond size={30} tier={tier} seed={tier * 17} className="align-middle" />
 }

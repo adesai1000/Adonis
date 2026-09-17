@@ -18,7 +18,7 @@ import type { CardioEntry, FoodEntry, SleepEntry, WorkoutSession } from "./types
  *   two     – two of the three (typically food + sleep on a rest day)
  *   diamond – food + sleep + a workout, or food + sleep on a weekend
  *             (weekends are rest days, so that's the full set); logging
- *             steps as well marks the day (`steps`) for the warm stone
+ *             steps as well marks the day (`steps`) for the yellow diamond
  *   future  – hasn't happened yet (hollow)
  *   before  – before the tracking start date (faint, so the start reads as a boundary)
  */
@@ -30,7 +30,7 @@ export interface ConsistencyDay {
   food: boolean
   sleep: boolean
   workout: boolean
-  /** Steps logged too — a complete day with steps earns the warm stone. */
+  /** Steps logged too — a complete day with steps earns the yellow diamond. */
   steps: boolean
 }
 
