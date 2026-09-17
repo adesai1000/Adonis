@@ -10,27 +10,29 @@ import {
 } from "@/lib/consistency"
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
-import {
-  Diamond,
-  DiamondField,
-  diamondCanvasMargin,
-  type DiamondGem,
-} from "@/components/common/diamond-field"
 
-/** Stickshift's single-hue heat ramp: --heat-0 (empty) → --heat-4 (most). */
+/** Flat cells: empty, one logged, and the days outside the tracked range. */
 function tileClass(level: ConsistencyDay["level"]): string {
   switch (level) {
     case "before":
       return "bg-[var(--heat-0)] opacity-40"
     case "future":
       return "border border-line-strong bg-transparent"
-    case "two":
-      return "bg-[var(--heat-4)]"
     case "one":
       return "bg-[var(--heat-2)]"
     default:
       return "bg-[var(--heat-0)]"
   }
+}
+
+/**
+ * The top three tiers are emoji: 🔥 for two of three logged, 💯 for a full
+ * day, 👑 for a full day with steps too. Anything else is a flat tile.
+ */
+function tileEmoji(day: ConsistencyDay): string | null {
+  if (day.level === "diamond") return day.steps ? "👑" : "💯"
+  if (day.level === "two") return "🔥"
+  return null
 }
 
 function tileTitle(day: ConsistencyDay): string {
@@ -45,28 +47,6 @@ function tileTitle(day: ConsistencyDay): string {
   ].filter(Boolean)
   const suffix = day.level === "diamond" ? (day.steps ? " — full day + steps" : " — full day") : ""
   return `${day.date}: ${parts.join(" + ")}${suffix}`
-}
-
-/**
- * A complete day's cell. The diamond itself is drawn by the WebGL field laid
- * over the grid; this keeps the cell's place (and its tooltip). The disc
- * inside is the fallback for browsers without WebGL and is hidden otherwise.
- */
-function GemCell({ title, tier }: { title: string; tier: 1 | 2 }) {
-  return (
-    <span className="gem-cell relative" title={title}>
-      <span className="gem-fallback">
-        <span className="gem-body" data-tier={tier} />
-      </span>
-    </span>
-  )
-}
-
-/** Stable per-day seed so each stone keeps its own character between renders. */
-function seedFor(date: string): number {
-  let h = 2166136261
-  for (let i = 0; i < date.length; i++) h = Math.imul(h ^ date.charCodeAt(i), 16777619)
-  return ((h >>> 0) % 1000) / 10
 }
 
 function parseDate(value: string): Date | null {
@@ -85,16 +65,6 @@ const GAP = 7
 const COL_WIDTH = TILE_SIZE + GAP
 /** How many weeks past today stay visible after the initial auto-scroll. */
 const FUTURE_PEEK_WEEKS = 3
-/**
- * How far the stones' canvas reaches past the grid on every side, in CSS px.
- * The grid keeps this much room on its left and right inside the scrolled
- * content, so the canvas scrolls with the grid without being clipped or
- * adding scroll width; below the grid the scroll box must fit it too, or the
- * overflow would make the box scrollable vertically, and that padding
- * doubles as the gap to the legend. The top edge sits inside the month row.
- */
-const CANVAS_PAD = diamondCanvasMargin(TILE_SIZE)
-const HALO_ROOM = CANVAS_PAD
 
 export function ConsistencyTracker() {
   const { foodLog, workoutLog, cardioLog, sleepLog, settings } = useStore()
@@ -139,9 +109,8 @@ export function ConsistencyTracker() {
   }, [weeks])
 
   // Auto-scroll so today's column is in view with a little of the future
-  // showing. Land on a column boundary: the first visible column sits just
-  // past the previous one's right edge with its own halo room showing, so no
-  // sliver of a half-scrolled tile sits beside the day labels.
+  // showing. Land on a column boundary so no sliver of a half-scrolled tile
+  // sits beside the day labels.
   const todayCol = Math.floor(Math.max(0, stats.todayIndex) / 7)
   useEffect(() => {
     const el = scrollRef.current
@@ -149,35 +118,13 @@ export function ConsistencyTracker() {
     const raf = requestAnimationFrame(() => {
       const fit = Math.floor(el.clientWidth / COL_WIDTH)
       const first = Math.max(0, todayCol + FUTURE_PEEK_WEEKS + 1 - fit)
-      el.scrollLeft = first === 0 ? 0 : HALO_ROOM + first * COL_WIDTH - GAP
+      el.scrollLeft = first * COL_WIDTH
     })
     return () => cancelAnimationFrame(raf)
   }, [todayCol, weeks.length])
 
   const weekCount = Math.max(1, Math.ceil(stats.totalDays / 7))
 
-  // Every complete day becomes a diamond for the WebGL field, placed on the
-  // same grid coordinates its cell occupies.
-  const gems = useMemo<DiamondGem[]>(() => {
-    const out: DiamondGem[] = []
-    weeks.forEach((week, wi) =>
-      week.forEach((day, di) => {
-        if (day.level !== "diamond") return
-        out.push({
-          x: wi * COL_WIDTH,
-          y: di * (TILE_SIZE + GAP),
-          size: TILE_SIZE,
-          tier: day.steps ? 2 : 1,
-          seed: seedFor(day.date),
-          delayMs: Math.max(0, wi - todayCol + 12) * 55 + di * 20,
-          title: tileTitle(day),
-        })
-      })
-    )
-    return out
-  }, [weeks, todayCol])
-  const gridWidth = weeks.length * COL_WIDTH - GAP
-  const gridHeight = 7 * TILE_SIZE + 6 * GAP
 
   return (
     <Card className="gap-4 py-5" data-section="tracker">
@@ -189,8 +136,7 @@ export function ConsistencyTracker() {
       </CardHeader>
 
       <CardContent className="px-5">
-        {/* no flex gap: the grid's own halo room is the gap to the labels */}
-        <div className="flex">
+        <div className="flex gap-2">
           <div
             className="flex shrink-0 flex-col text-[11px] text-muted-foreground"
             style={{ paddingTop: TILE_SIZE + 4, gap: GAP }}
@@ -203,18 +149,8 @@ export function ConsistencyTracker() {
           </div>
 
           {/* Sideways only: a vertical swipe over the grid scrolls the page. */}
-          <div
-            ref={scrollRef}
-            className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden"
-            style={{ paddingBottom: CANVAS_PAD }}
-          >
-            <div
-              style={{
-                width: gridWidth + 2 * HALO_ROOM,
-                paddingLeft: HALO_ROOM,
-                paddingRight: HALO_ROOM,
-              }}
-            >
+          <div ref={scrollRef} className="min-w-0 flex-1 overflow-x-auto overflow-y-hidden pb-4">
+            <div style={{ width: weeks.length * COL_WIDTH - GAP }}>
               <div className="relative" style={{ height: TILE_SIZE }}>
                 {monthLabels.map((label, wi) =>
                   label ? (
@@ -229,7 +165,7 @@ export function ConsistencyTracker() {
                 )}
               </div>
               <div
-                className="relative grid"
+                className="grid"
                 style={{
                   marginTop: 4,
                   gridTemplateColumns: `repeat(${weeks.length}, ${TILE_SIZE}px)`,
@@ -238,15 +174,17 @@ export function ConsistencyTracker() {
                   gap: GAP,
                 }}
               >
-                <DiamondField gems={gems} width={gridWidth} height={gridHeight} clipRef={scrollRef} />
                 {weeks.flatMap((week, wi) =>
-                  week.map((day, di) =>
-                    day.level === "diamond" ? (
-                      <GemCell
+                  week.map((day, di) => {
+                    const emoji = tileEmoji(day)
+                    return emoji ? (
+                      <span
                         key={`${wi}-${di}`}
+                        className="grid place-items-center text-[26px] leading-none"
                         title={tileTitle(day)}
-                        tier={day.steps ? 2 : 1}
-                      />
+                      >
+                        {emoji}
+                      </span>
                     ) : (
                       <span
                         key={`${wi}-${di}`}
@@ -254,7 +192,7 @@ export function ConsistencyTracker() {
                         title={tileTitle(day)}
                       />
                     )
-                  )
+                  })
                 )}
               </div>
             </div>
@@ -274,19 +212,16 @@ export function ConsistencyTracker() {
               <span className="size-[11px] rounded-[3px] bg-[var(--heat-2)]" /> 1 logged
             </span>
             <span className="flex items-center gap-1.5">
-              <span className="size-[11px] rounded-[3px] bg-[var(--heat-4)]" /> 2 logged
+              <span className="text-sm leading-none">🔥</span> 2 logged
             </span>
             <span
               className="flex items-center gap-1.5"
-              title="Food, sleep and a workout all logged (food and sleep on a weekend): a diamond"
+              title="Food, sleep and a workout all logged (food and sleep on a weekend)"
             >
-              <LegendStone tier={1} /> full day
+              <span className="text-sm leading-none">💯</span> full day
             </span>
-            <span
-              className="flex items-center gap-1.5"
-              title="A full day with steps logged too: a yellow diamond"
-            >
-              <LegendStone tier={2} /> full day + steps
+            <span className="flex items-center gap-1.5" title="A full day with steps logged too">
+              <span className="text-sm leading-none">👑</span> full day + steps
             </span>
           </span>
         </div>
@@ -295,7 +230,3 @@ export function ConsistencyTracker() {
   )
 }
 
-/** A single stone for the legend: the same component as the tracker's stones. */
-function LegendStone({ tier }: { tier: 1 | 2 }) {
-  return <Diamond size={30} tier={tier} seed={tier * 17} className="align-middle" />
-}

@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // Screenshot a page with headless Brave over the DevTools protocol. Node 24,
-// no dependencies. WebGL renders fine headless.
+// no dependencies.
 //
-//   node dev/shoot.mjs --url http://localhost:5173/dev/diamond.html --out shot.png
-//     [--selector "[data-shot=big]"]   clip to an element (document coords)
+//   node dev/shoot.mjs --url http://localhost:5173/ --out shot.png
+//     [--selector "[data-section=tracker]"]   clip to an element (document coords)
 //     [--seed seed.json]               localStorage key → string, set then reload
 //     [--wait 1500]                    ms to let the page animate before the shot
 //     [--width 1200 --height 900]      window size in CSS px
@@ -177,7 +177,6 @@ const shot = await send("Page.captureScreenshot", {
   ...(clip ? { clip } : {}),
 })
 writeFileSync(out, Buffer.from(shot.data, "base64"))
-const diamond = await evaluate("document.documentElement.dataset.diamond || ''")
-console.log(`wrote ${out}${clip ? ` (${Math.round(clip.width)}×${Math.round(clip.height)} css px)` : ""}${diamond ? `; diamond: ${diamond}` : ""}`)
+console.log(`wrote ${out}${clip ? ` (${Math.round(clip.width)}×${Math.round(clip.height)} css px)` : ""}`)
 ws.close()
 process.exit(0)
