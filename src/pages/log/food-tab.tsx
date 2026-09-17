@@ -32,7 +32,7 @@ const initialDraft = (): FoodDraft => ({
 })
 
 export function FoodTab() {
-  const { meals, addFood, addMeal } = useStore()
+  const { meals, foodLog, addFood, addMeal } = useStore()
   const [draft, setDraft] = useDraft<FoodDraft>(
     "wt_draft_food",
     initialDraft()
@@ -46,16 +46,54 @@ export function FoodTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const options = useMemo<ComboOption[]>(
-    () =>
-      meals.map((m) => ({
+  // How often and how recently each meal has been logged. Older entries and
+  // re-imported data can lose their mealId, so fall back to matching by name.
+  const usage = useMemo(() => {
+    const ids = new Set(meals.map((m) => m.id))
+    const idByName = new Map<string, string>()
+    for (const m of meals) {
+      const key = m.name.trim().toLowerCase()
+      if (!idByName.has(key)) idByName.set(key, m.id)
+    }
+    const map = new Map<string, { count: number; last: string }>()
+    for (const e of foodLog) {
+      const id =
+        e.mealId && ids.has(e.mealId)
+          ? e.mealId
+          : idByName.get((e.name ?? "").trim().toLowerCase())
+      if (!id) continue
+      const u = map.get(id)
+      if (!u) map.set(id, { count: 1, last: e.datetime })
+      else {
+        u.count += 1
+        if (e.datetime > u.last) u.last = e.datetime
+      }
+    }
+    return map
+  }, [meals, foodLog])
+
+  // Regulars first: most logged, then most recently logged, then A→Z.
+  const options = useMemo<ComboOption[]>(() => {
+    const sorted = [...meals].sort((a, b) => {
+      const ua = usage.get(a.id)
+      const ub = usage.get(b.id)
+      const byCount = (ub?.count ?? 0) - (ua?.count ?? 0)
+      if (byCount !== 0) return byCount
+      const byRecency = (ub?.last ?? "").localeCompare(ua?.last ?? "")
+      if (byRecency !== 0) return byRecency
+      return a.name.localeCompare(b.name)
+    })
+    return sorted.map((m) => {
+      const count = usage.get(m.id)?.count ?? 0
+      return {
         value: m.id,
         label: m.name,
         sublabel: m.serving,
+        badge: count > 0 ? `${count}×` : undefined,
         keywords: [m.name, m.serving],
-      })),
-    [meals]
-  )
+      }
+    })
+  }, [meals, usage])
 
   const meal = useMemo(
     () => meals.find((m) => m.id === draft.mealId) ?? null,

@@ -21,6 +21,8 @@ export interface ComboOption {
   label: string
   group?: string
   sublabel?: string
+  /** Short pill rendered between the label and sublabel (e.g. a usage count). */
+  badge?: string
   keywords?: string[]
 }
 
@@ -47,6 +49,7 @@ export function Combobox({
 }: ComboboxProps) {
   const [open, setOpen] = useState(false)
   const selected = options.find((o) => o.value === value)
+  const hasBadges = options.some((o) => o.badge)
 
   const grouped = useMemo(() => {
     const map = new Map<string, ComboOption[]>()
@@ -98,7 +101,10 @@ export function Combobox({
                 {opts.map((opt) => (
                   <CommandItem
                     key={opt.value}
-                    value={opt.label}
+                    // the id, not the label: two meals with the same name
+                    // would otherwise share one cmdk item and confuse
+                    // keyboard selection; the label still matches via keywords
+                    value={opt.value}
                     keywords={[opt.label, ...(opt.keywords ?? [])]}
                     onSelect={() => {
                       onChange(opt.value)
@@ -112,6 +118,18 @@ export function Combobox({
                         opt.value === value ? "opacity-100" : "opacity-0"
                       )}
                     />
+                    {hasBadges && (
+                      // before the name, in a fixed slot so the names line up;
+                      // bg-foreground/10 rather than bg-muted so the pill stays
+                      // visible on the highlighted row, which is itself bg-muted
+                      <span className="inline-flex w-9 shrink-0 justify-center">
+                        {opt.badge && (
+                          <span className="rounded-full bg-foreground/10 px-1.5 text-[10px] font-medium tabular-nums text-muted-foreground">
+                            {opt.badge}
+                          </span>
+                        )}
+                      </span>
+                    )}
                     <span className="flex-1 truncate">{opt.label}</span>
                     {opt.sublabel && (
                       <span className="shrink-0 text-xs text-muted-foreground">
