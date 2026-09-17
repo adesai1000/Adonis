@@ -11,27 +11,27 @@ import {
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 
-/** Flat cells: empty, one logged, and the days outside the tracked range. */
+/** Flat cells: nothing logged, and the days outside the tracked range. */
 function tileClass(level: ConsistencyDay["level"]): string {
   switch (level) {
     case "before":
       return "bg-[var(--heat-0)] opacity-40"
     case "future":
       return "border border-line-strong bg-transparent"
-    case "one":
-      return "bg-[var(--heat-2)]"
     default:
       return "bg-[var(--heat-0)]"
   }
 }
 
 /**
- * The top three tiers are emoji: 🔥 for two of three logged, 💯 for a full
- * day, 👑 for a full day with steps too. Anything else is a flat tile.
+ * Every logged tier is an emoji: 🎉 for one of three logged, 🔥 for two,
+ * 💯 for a full day, 👑 for a full day with steps too. Anything else is a
+ * flat tile.
  */
 function tileEmoji(day: ConsistencyDay): string | null {
   if (day.level === "diamond") return day.steps ? "👑" : "💯"
   if (day.level === "two") return "🔥"
+  if (day.level === "one") return "🎉"
   return null
 }
 
@@ -209,7 +209,7 @@ export function ConsistencyTracker() {
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <span className="microlabel">food · sleep · workout</span>
             <span className="flex items-center gap-1.5">
-              <span className="size-[11px] rounded-[3px] bg-[var(--heat-2)]" /> 1 logged
+              <span className="text-sm leading-none">🎉</span> 1 logged
             </span>
             <span className="flex items-center gap-1.5">
               <span className="text-sm leading-none">🔥</span> 2 logged
