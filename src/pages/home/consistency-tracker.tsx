@@ -11,13 +11,17 @@ import {
 import { cn } from "@/lib/utils"
 import { useStore } from "@/store/store"
 
-/** Flat cells: nothing logged, and the days outside the tracked range. */
+/**
+ * Flat cells: nothing logged, and the days outside the tracked range. Every
+ * cell shares the hollow box; a logged-nothing day is filled, an upcoming
+ * one is not, a day before tracking began is faint.
+ */
 function tileClass(level: ConsistencyDay["level"]): string {
   switch (level) {
     case "before":
       return "bg-[var(--heat-0)] opacity-40"
     case "future":
-      return "border border-line-strong bg-transparent"
+      return "bg-transparent"
     default:
       return "bg-[var(--heat-0)]"
   }
@@ -187,7 +191,7 @@ export function ConsistencyTracker() {
                     ) : (
                       <span
                         key={`${wi}-${di}`}
-                        className={cn("rounded-[6px]", tileClass(day.level))}
+                        className={cn("rounded-[6px] border border-line-strong", tileClass(day.level))}
                         title={tileTitle(day)}
                       />
                     )
