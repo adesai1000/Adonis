@@ -25,8 +25,8 @@ function tileClass(level: ConsistencyDay["level"]): string {
 
 /**
  * Every logged tier is an emoji: 🎉 for one of three logged, 🔥 for two,
- * 💯 for a full day, 👑 for a full day with steps too. Anything else is a
- * flat tile.
+ * 💯 for a full day, 👑 for a full day with steps too, each in the same
+ * hollow box as an upcoming day. Anything else is a flat tile.
  */
 function tileEmoji(day: ConsistencyDay): string | null {
   if (day.level === "diamond") return day.steps ? "👑" : "💯"
@@ -125,7 +125,6 @@ export function ConsistencyTracker() {
 
   const weekCount = Math.max(1, Math.ceil(stats.totalDays / 7))
 
-
   return (
     <Card className="gap-4 py-5" data-section="tracker">
       <CardHeader className="flex flex-row items-center gap-3 px-5">
@@ -180,7 +179,7 @@ export function ConsistencyTracker() {
                     return emoji ? (
                       <span
                         key={`${wi}-${di}`}
-                        className="grid place-items-center text-[26px] leading-none"
+                        className="grid place-items-center rounded-[6px] border border-line-strong text-[24px] leading-none"
                         title={tileTitle(day)}
                       >
                         {emoji}
@@ -205,23 +204,23 @@ export function ConsistencyTracker() {
             {weekCount} week{weekCount === 1 ? "" : "s"} · longest streak{" "}
             {stats.longestStreak} day{stats.longestStreak === 1 ? "" : "s"}
           </span>
-          {/* The scale: how much of food / sleep / workout a day covered. */}
+          {/* The scale: of food, sleep and workout, how many a day covered. */}
           <span className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-            <span className="microlabel">food · sleep · workout</span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-sm leading-none">🎉</span> 1 logged
+            <span className="microlabel">logged: food · sleep · workout</span>
+            <span className="flex items-center gap-1.5" title="One of food, sleep or a workout">
+              <span className="text-sm leading-none">🎉</span> 1 of 3
             </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-sm leading-none">🔥</span> 2 logged
+            <span className="flex items-center gap-1.5" title="Two of food, sleep and workout">
+              <span className="text-sm leading-none">🔥</span> 2 of 3
             </span>
             <span
               className="flex items-center gap-1.5"
-              title="Food, sleep and a workout all logged (food and sleep on a weekend)"
+              title="Food, sleep and a workout all logged (food and sleep count as all 3 on a weekend)"
             >
-              <span className="text-sm leading-none">💯</span> full day
+              <span className="text-sm leading-none">💯</span> all 3
             </span>
-            <span className="flex items-center gap-1.5" title="A full day with steps logged too">
-              <span className="text-sm leading-none">👑</span> full day + steps
+            <span className="flex items-center gap-1.5" title="All 3, and steps logged too">
+              <span className="text-sm leading-none">👑</span> all 3 + steps
             </span>
           </span>
         </div>
